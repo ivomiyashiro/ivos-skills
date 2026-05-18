@@ -29,15 +29,40 @@ npx skills add ivomiyashiro/ivos-skills --skill nombre-skill -g -y
 
 ## Updating
 
-OpenCode installs ivos-skills through a git-backed package spec. To update to the latest version, restart OpenCode or reinstall the plugin.
+OpenCode installs ivos-skills through a git-backed package spec. To update to the latest version:
 
-To pin a specific version:
+### Option 1: Restart OpenCode (automatic)
+Just restart OpenCode. It will check for updates on the git repository automatically.
+
+### Option 2: Force reinstall (if restart doesn't pick up changes)
+If OpenCode has cached an old version and restarting doesn't update:
+
+```bash
+# Remove the cached plugin
+rm -rf ~/.config/opencode/node_modules/ivos-skills
+
+# Or on Windows PowerShell:
+Remove-Item -Recurse -Force "$env:USERPROFILE\.config\opencode\node_modules\ivos-skills"
+```
+
+Then restart OpenCode again.
+
+### Option 3: Update via npm
+```bash
+# Update the git-backed package
+npm install ivos-skills@git+https://github.com/ivomiyashiro/ivos-skills.git --prefix ~/.config/opencode
+```
+
+### Pinning a version
+To stay on a specific version and avoid automatic updates:
 
 ```json
 {
   "plugin": ["ivos-skills@git+https://github.com/ivomiyashiro/ivos-skills.git#v1.0.0"]
 }
 ```
+
+Use a git tag (e.g., `#v1.0.0`) or commit hash (e.g., `#a1b2c3d`) to pin.
 
 ## Troubleshooting
 

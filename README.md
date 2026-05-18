@@ -37,6 +37,12 @@ npx skills add ivomiyashiro/ivos-skills --skill nombre-skill -g -y
 
 # Listar skills disponibles en el paquete
 npx skills add ivomiyashiro/ivos-skills -l
+
+# Actualizar todas las skills instaladas
+npx skills update -g
+
+# Actualizar solo esta skill
+npx skills update ivos-skills -g
 ```
 
 ## Skills incluidas
@@ -71,6 +77,46 @@ npx skills add ivomiyashiro/ivos-skills -l
 | `verification-before-completion` | Use when about to claim work is complete, fixed, or passing, before committing or creating PRs |
 | `writing-plans` | Use when you have a spec or requirements for a multi-step task, before touching code |
 | `writing-skills` | Use when creating new skills, editing existing skills, or verifying skills work before deployment |
+
+## Mantener actualizado
+
+### OpenCode (plugin)
+
+OpenCode detecta cambios automaticamente al reiniciar. Si no detecta la ultima version:
+
+```bash
+# Forzar reinstalacion (elimina cache)
+rm -rf ~/.config/opencode/node_modules/ivos-skills
+# Luego reinicia OpenCode
+```
+
+O actualiza manualmente via npm:
+```bash
+npm install ivos-skills@git+https://github.com/ivomiyashiro/ivos-skills.git --prefix ~/.config/opencode
+```
+
+### Skills CLI
+
+```bash
+# Actualizar todas las skills globales
+npx skills update -g
+
+# Actualizar solo ivos-skills
+npx skills update ivos-skills -g
+
+# Verificar si hay actualizaciones
+npx skills check
+```
+
+### Versionado
+
+Para mantener una version especifica y no recibir actualizaciones automaticas, pinnala con un tag o commit:
+
+```json
+{
+  "plugin": ["ivos-skills@git+https://github.com/ivomiyashiro/ivos-skills.git#v1.0.0"]
+}
+```
 
 ## Estructura
 
