@@ -47,7 +47,7 @@ digraph process {
 
     "Validate worktree (superpowers:using-git-worktrees)" [shape=box];
     "Run superpowers:find-skills for domain discovery" [shape=box];
-    "Read plan, extract all tasks with full text + Skills annotations, create TodoWrite" [shape=box];
+    "Read plan.md (Macro Plan), then read each task-NN-*.md file for full text + Skills annotations" [shape=box];
 
     subgraph cluster_per_task {
         label="Per Task";
@@ -69,7 +69,7 @@ digraph process {
     "Use superpowers:finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
 
     "Validate worktree (superpowers:using-git-worktrees)" -> "Run superpowers:find-skills for domain discovery";
-    "Run superpowers:find-skills for domain discovery" -> "Read plan, extract all tasks with full text + Skills annotations, create TodoWrite";
+    "Run superpowers:find-skills for domain discovery" -> "Read plan.md (Macro Plan), then read each task-NN-*.md file for full text + Skills annotations";
     "Read plan, extract all tasks with full text + Skills annotations, create TodoWrite" -> "Dispatch implementer subagent (./implementer-prompt.md)";
     "Dispatch implementer subagent (./implementer-prompt.md)" -> "Implementer subagent asks questions?";
     "Implementer subagent asks questions?" -> "Answer questions, provide context" [label="yes"];
@@ -137,15 +137,15 @@ You: I'm using Subagent-Driven Development to execute this plan.
 
 [Validate worktree using superpowers:using-git-worktrees]
 [Run superpowers:find-skills to discover domain-specific skills]
-[Read plan file once: docs/superpowers/plans/feature-plan.md]
-[Extract all 5 tasks with full text, context, AND **Skills:** annotations]
+[Read plan.md once: docs/superpowers/plans/YYYY-MM-DD-feature/plan.md]
+[Read each task-NN-*.md file to extract full text, context, AND **Skills:** annotations]
 [Create TodoWrite with all tasks]
 
 Task 1: Hook installation script
 
-[Get Task 1 text, context, and **Skills:** annotations (already extracted)]
+[Read task-01-*.md file contents, context, and **Skills:** annotations]
 [Include Skills annotations in implementer prompt so subagent loads them]
-[Dispatch implementation subagent with full task text + context + Skills list]
+[Dispatch implementation subagent with full task file text + context + Skills list]
 
 Implementer: "Before I begin - should the hook be installed at user or system level?"
 
@@ -168,9 +168,9 @@ Code reviewer: Strengths: Good test coverage, clean. Issues: None. Approved.
 
 Task 2: Recovery modes
 
-[Get Task 2 text, context, and **Skills:** annotations (already extracted)]
+[Read task-02-*.md file contents, context, and **Skills:** annotations]
 [Include Skills annotations in implementer prompt so subagent loads them]
-[Dispatch implementation subagent with full task text + context + Skills list]
+[Dispatch implementation subagent with full task file text + context + Skills list]
 
 Implementer: [No questions, proceeds]
 Implementer:
@@ -249,7 +249,7 @@ Done!
 - Skip reviews (spec compliance OR code quality)
 - Proceed with unfixed issues
 - Dispatch multiple implementation subagents in parallel (conflicts)
-- Make subagent read plan file (provide full text instead)
+- Make subagent read task files from disk (provide full file contents in the prompt instead)
 - Skip scene-setting context (subagent needs to understand where task fits)
 - Ignore subagent questions (answer before letting them proceed)
 - Accept "close enough" on spec compliance (spec reviewer found issues = not done)

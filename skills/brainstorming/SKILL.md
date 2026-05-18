@@ -29,7 +29,7 @@ You MUST create a task for each of these items and complete them in order:
 6. **Write design doc** — save to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` and commit
 7. **Spec self-review** — quick inline check for placeholders, contradictions, ambiguity, scope (see below)
 8. **User reviews written spec** — ask user to review the spec file before proceeding
-9. **Transition to implementation** — invoke writing-plans skill to create implementation plan
+9. **Transition to implementation** — invoke writing-plans skill to create implementation plan (Macro Plan + task files)
 
 ## Process Flow
 
@@ -132,9 +132,12 @@ After the spec review loop passes, ask the user to review the written spec befor
 
 Wait for the user's response. If they request changes, make them and re-run the spec review loop. Only proceed once the user approves.
 
-**Implementation:**
+**Plan Generation:**
 
-- Invoke the writing-plans skill to create a detailed implementation plan
+- Invoke the writing-plans skill to create the implementation plan
+- The plan will be a directory: `docs/superpowers/plans/YYYY-MM-DD-<feature-name>/`
+  - `plan.md` — Macro Plan (roadmap + file structure + required skills)
+  - `task-01-*.md`, `task-02-*.md`, ... — Individual self-contained task files
 - Do NOT invoke any other skill. writing-plans is the next step.
 
 ## Key Principles

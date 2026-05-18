@@ -12,7 +12,7 @@ Task tool (general-purpose):
 
     ## What Was Requested
 
-    [FULL TEXT of task requirements]
+    [FULL TEXT of the task file (task-NN-*.md) - paste complete contents]
 
     ## What Implementer Claims They Built
 
@@ -54,7 +54,7 @@ Task tool (general-purpose):
     - Did they implement the right feature but wrong way?
 
     **Skill compliance:**
-    - Did the implementer load and follow the skills listed in the subtask's **Skills:** field?
+    - Did the implementer load and follow the skills listed in the task file's **Skills:** field?
     - If `test-driven-development` was required, are there failing-then-passing tests for every code change?
     - If domain-specific skills were required (e.g., `react-best-practices`), does the code follow their conventions?
 

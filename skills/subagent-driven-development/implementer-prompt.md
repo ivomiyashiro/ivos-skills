@@ -10,13 +10,13 @@ Task tool (general-purpose):
 
     ## Task Description
 
-    [FULL TEXT of task from plan - paste it here, don't make subagent read file]
+    [FULL TEXT of the task file - paste the complete contents of task-NN-*.md here, don't make subagent read the file]
 
     ## Required Skills
 
-    This subtask requires loading the following skills BEFORE starting work:
+    This task requires loading the following skills BEFORE starting work:
 
-    [List every skill from the subtask's **Skills:** field, e.g.:
+    [List every skill from the task file's **Skills:** field, e.g.:
     - superpowers:test-driven-development
     - superpowers:react-best-practices
     - superpowers:systematic-debugging

@@ -15,7 +15,9 @@ Assume the executor is a skilled developer but has **zero context** about the co
 
 **Context:** If working in an isolated worktree, it should have been created via the `superpowers:using-git-worktrees` skill at execution time.
 
-**Save plans to:** `docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md`
+**Save plans to:**
+- **Macro Plan:** `docs/superpowers/plans/YYYY-MM-DD-<feature-name>/plan.md`
+- **Task Files:** `docs/superpowers/plans/YYYY-MM-DD-<feature-name>/task-NN-<short-name>.md` (one file per subtask)
 - (User preferences for plan location override this default)
 
 ---
@@ -24,14 +26,14 @@ Assume the executor is a skilled developer but has **zero context** about the co
 
 Before writing any task details, define the **Macro Plan**: a short, numbered list of every atomic subtask with a one-line description and its goal.
 
-This is the "table of contents" that lets anyone see the full picture at a glance.
+This is the "table of contents" that lets anyone see the full picture at a glance. It lives in the **plan.md** file.
 
 ```markdown
 ## Macro Plan
 
-1. **T1: [Short name]** — [One-line goal]
-2. **T2: [Short name]** — [One-line goal]
-3. **T3: [Short name]** — [One-line goal]
+1. **T1: [Short name]** — [One-line goal] → `task-01-<kebab-name>.md`
+2. **T2: [Short name]** — [One-line goal] → `task-02-<kebab-name>.md`
+3. **T3: [Short name]** — [One-line goal] → `task-03-<kebab-name>.md`
 ...
 
 ## Required Skills
@@ -46,6 +48,7 @@ This is the "table of contents" that lets anyone see the full picture at a glanc
 Rules for the Macro Plan:
 - **Max 10–15 subtasks**. If you need more, the feature is too big — split it into separate plans.
 - Each subtask is a **single, indivisible unit of work** (e.g., one function, one test file, one config change).
+- Each subtask gets its own file: `task-NN-<short-kebab-name>.md`
 - A subagent reading only the Macro Plan must understand what gets built and in what order.
 
 ---
@@ -82,12 +85,12 @@ The executor (`executing-plans`) will also run `find-skills`, but if the **plan 
 - Subagents receive explicit instructions: *"Load `superpowers:react-best-practices` before starting this subtask."*
 - The plan becomes self-documenting about its own tooling requirements.
 
-### Skill annotation in subtasks
+### Skill annotation in task files
 
-Add a `**Skills:**` field to every subtask that needs domain-specific guidance:
+Add a `**Skills:**` field to every task file that needs domain-specific guidance:
 
 ```markdown
-### Subtask N: [Component Name]
+# Task N: [Component Name]
 
 **Goal:** ...
 
@@ -119,12 +122,14 @@ This is non-negotiable. The `test-driven-development` skill is always loaded imp
 - **Refactor**: If the subtask has more than one test or the code needs cleanup, include a refactor step.
 - **No exceptions**: Even "infrastructure" subtasks (config, wiring, adapters) get a test first. If you genuinely cannot write a meaningful test for a subtask, that subtask is too vague — split it until you can.
 
-### Subtask template (TDD-first + skill-annotated):
+### Task File Template (TDD-first + skill-annotated)
+
+Each subtask lives in its own file (`task-NN-<kebab-name>.md`). This keeps tasks self-contained and prevents context bloat.
 
 ```markdown
-### Subtask N: [Component Name]
+# Task N: [Component Name]
 
-**Goal:** [One sentence: what this subtask produces when done]
+**Goal:** [One sentence: what this task produces when done]
 
 **Files:**
 - Create: `exact/path/to/file.py`
@@ -132,14 +137,14 @@ This is non-negotiable. The `test-driven-development` skill is always loaded imp
 - Test: `tests/exact/path/to/test.py`
 
 **Skills:**
-- List every `superpowers:<skill-name>` the executor must load before starting this subtask.
+- List every `superpowers:<skill-name>` the executor must load before starting this task.
 - Include domain-specific skills discovered via `find-skills` (e.g., `react-best-practices`, `flutter-add-widget-test`).
-- Always include `superpowers:test-driven-development` if this subtask writes/modifies code.
+- Always include `superpowers:test-driven-development` if this task writes/modifies code.
 - If none beyond implicit TDD, write: `superpowers:test-driven-development` (implicit)
 
-**Prerequisites (if any):** [Only list direct prerequisites — things that MUST exist before this subtask starts. If none, write "None."]
+**Prerequisites (if any):** [Only list direct prerequisites — things that MUST exist before this task starts. If none, write "None."]
 
-**Context for the executor:** [2–3 sentences explaining WHY this subtask exists and how it fits into the bigger picture. The executor has not read the rest of the plan.]
+**Context for the executor:** [2–3 sentences explaining WHY this task exists and how it fits into the bigger picture. The executor has not read the rest of the plan.]
 
 **Steps (TDD cycle):**
 
@@ -238,34 +243,34 @@ After writing the complete plan, run this checklist on yourself:
 Skim each section/requirement in the spec. Can you point to a subtask that implements it? List any gaps and add subtasks.
 
 ### 6.2 Skill Annotation Check
-**For every subtask:**
+**For every task file:**
 1. Does it have a `**Skills:**` field?
-2. Are the listed skills relevant to the subtask's domain?
+2. Are the listed skills relevant to the task's domain?
 3. Did you discover these skills via `find-skills` during planning, or are they just generic defaults?
 4. Are the skill names exact (e.g., `superpowers:react-best-practices`, not just "React skill")?
 
-**If a subtask lacks skill annotations or has incorrect ones, fix them.** The executor relies on these annotations to load the right skills.
+**If a task file lacks skill annotations or has incorrect ones, fix them.** The executor relies on these annotations to load the right skills.
 
 ### 6.3 TDD Compliance Scan
-**For every subtask that writes or modifies code:**
-1. Does the subtask start with a failing test (RED step)?
+**For every task file that writes or modifies code:**
+1. Does the task start with a failing test (RED step)?
 2. Does it have a minimal implementation step (GREEN step)?
-3. Is there any subtask that implements code before writing a test?
+3. Is there any task that implements code before writing a test?
 4. Is there any "write tests for X" that comes AFTER an "implement X"?
 
-**If any subtask violates TDD, rewrite it.** This is a plan-blocking issue.
+**If any task violates TDD, rewrite it.** This is a plan-blocking issue.
 
 ### 6.4 Macro Plan Sanity Check
-Read only the Macro Plan. Does the full feature make sense? Is the order logical? Are there any subtasks that could be parallelized?
+Read only the Macro Plan (`plan.md`). Does the full feature make sense? Is the order logical? Are there any tasks that could be parallelized?
 
 ### 6.5 Placeholder Scan
-Search your plan for red flags — any of the patterns from the "No Placeholders" section above. Fix them.
+Search your task files for red flags — any of the patterns from the "No Placeholders" section above. Fix them.
 
 ### 6.6 Subagent Isolation Test
-Pick a random subtask and read it in isolation (pretend you know nothing about the rest of the plan). Can you execute it? If not, add missing context. **Verify the `**Skills:**` field is sufficient for the subagent to load everything it needs.**
+Pick a random task file and read it in isolation (pretend you know nothing about the rest of the plan). Can you execute it? If not, add missing context. **Verify the `**Skills:**` field is sufficient for the subagent to load everything it needs.**
 
 ### 6.7 Type Consistency
-Do the types, method signatures, and property names you used in later subtasks match what you defined in earlier ones? A function called `clearLayers()` in T3 but `clearFullLayers()` in T7 is a bug.
+Do the types, method signatures, and property names you used in later task files match what you defined in earlier ones? A function called `clearLayers()` in `task-03-*.md` but `clearFullLayers()` in `task-07-*.md` is a bug.
 
 If you find issues, fix them inline. No need to re-review — just fix and move on.
 
@@ -275,20 +280,21 @@ If you find issues, fix them inline. No need to re-review — just fix and move 
 
 After saving the plan, offer execution choice:
 
-**"Plan complete and saved to `docs/superpowers/plans/<filename>.md`. Two execution options:**
+**"Plan complete and saved to `docs/superpowers/plans/<feature-name>/`. Two execution options:**
 
-**1. Subagent-Driven (recommended)** — I dispatch one subagent per subtask from the Macro Plan. Each subagent receives only its assigned subtask in full isolation. Fast iteration, parallelizable where possible.
+**1. Subagent-Driven (recommended)** — I dispatch one subagent per task from the Macro Plan. Each subagent reads only its assigned `task-NN-*.md` file in full isolation. Fast iteration, parallelizable where possible.
 
-**2. Inline Execution** — I execute subtasks sequentially in this session using `executing-plans`, with checkpoints for review.
+**2. Inline Execution** — I execute tasks sequentially in this session using `executing-plans`, with checkpoints for review.
 
 **Which approach?"**
 
 **If Subagent-Driven chosen:**
 - **REQUIRED SUB-SKILL:** Use `superpowers:subagent-driven-development`
-- Fresh subagent per subtask + two-stage review
-- **Critical:** The controller MUST extract the `**Skills:**` annotations from each subtask and include them in the implementer prompt. The subagent cannot see the full plan — it only receives its isolated subtask. If the Skills list is missing from the prompt, the subagent won't load domain-specific conventions.
+- Fresh subagent per task + two-stage review
+- **Critical:** The controller MUST read each `task-NN-*.md` file and pass its full contents (including the `**Skills:**` annotations) to the implementer subagent. The subagent does not read the plan directory — it only receives its isolated task file contents. If the Skills list is missing from the prompt, the subagent won't load domain-specific conventions.
 
 **If Inline Execution chosen:**
 - **REQUIRED SUB-SKILL:** Use `superpowers:executing-plans`
 - Batch execution with checkpoints for review
+- The executor reads the Macro Plan (`plan.md`) first, then each `task-NN-*.md` file in order.
 - The executor will run `find-skills` as a safety net and enforce TDD automatically.

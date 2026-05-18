@@ -22,7 +22,7 @@ Load plan, review critically, execute all tasks, report when complete.
 3. Do not proceed until running inside a worktree
 
 ### Step 1: Load and Review Plan
-1. Read plan file
+1. Read the **Macro Plan** file (`plan.md`) to understand the full roadmap
 2. Review critically - identify any questions or concerns about the plan
 3. If concerns: Raise them with your human partner before starting
 4. If no concerns: proceed to Step 1.5
@@ -58,21 +58,22 @@ Load plan, review critically, execute all tasks, report when complete.
 
 ### Step 2: Execute Tasks
 
-For each task:
-1. Mark as in_progress
-2. **If `superpowers:test-driven-development` is loaded and this subtask writes/modifies code:**
-   - **Enforce TDD cycle automatically**, regardless of the order in the plan.
-   - If the plan says "implement X" without a preceding failing test, **STOP** and:
+For each task listed in the Macro Plan:
+1. **Read the task file** (`task-NN-<name>.md`) assigned to this step
+2. Mark as in_progress in TodoWrite
+3. **If `superpowers:test-driven-development` is loaded and this task writes/modifies code:**
+   - **Enforce TDD cycle automatically**, regardless of the order in the task file.
+   - If the task says "implement X" without a preceding failing test, **STOP** and:
      1. Write the failing test first (RED).
      2. Run it to confirm it fails.
-     3. Then follow the plan's implementation step (GREEN).
+     3. Then follow the task's implementation step (GREEN).
      4. Run the test to confirm it passes.
-     5. Refactor if the plan includes a refactor step or if you see cleanup opportunities.
-   - If the plan already follows TDD order (test first, then implement), execute it exactly as written.
-   - **Never write production code without a failing test first.** If a subtask has no test step and writes code, add the test step yourself before touching implementation.
-3. Follow each step exactly (plan has bite-sized steps)
-4. Run verifications as specified
-5. Mark as completed
+     5. Refactor if the task includes a refactor step or if you see cleanup opportunities.
+   - If the task already follows TDD order (test first, then implement), execute it exactly as written.
+   - **Never write production code without a failing test first.** If a task has no test step and writes code, add the test step yourself before touching implementation.
+4. Follow each step exactly (task files have bite-sized steps)
+5. Run verifications as specified
+6. Mark as completed in TodoWrite
 
 ### Step 3: Complete Development
 
