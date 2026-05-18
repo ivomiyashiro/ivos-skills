@@ -87,6 +87,7 @@ digraph brainstorming {
 **Presenting the design:**
 
 - Once you believe you understand what you're building, present the design
+- **Before defining technologies, architecture, folder structure, or endpoints: check for relevant skills.** Use the `skill` tool to discover and load any skills related to the tech stack or architecture (e.g., `flutter-apply-architecture-best-practices`, `hono-api-best-practices`, `react-best-practices`). If such skills exist, the design MUST align with their conventions — do not invent alternative structures or technologies that contradict them.
 - Scale each section to its complexity: a few sentences if straightforward, up to 200-300 words if nuanced
 - Ask after each section whether it looks right so far
 - Cover: architecture, components, data flow, error handling, testing
