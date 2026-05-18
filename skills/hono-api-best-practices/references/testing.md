@@ -237,6 +237,9 @@ magia, no interfiere entre tests.
 
 - ❌ `mock.module('@shared/db/client')` para mockear DB globalmente. Frágil.
   Pasar `db` como dep al handler.
+- ❌ Test data que viola contratos Zod. Si el schema dice `id: z.string().uuid()`,
+  no uses `'u1'` en mocks — usa `crypto.randomUUID()`. El test debe validar el
+  contrato real, no solo pasar.
 - ❌ Tests que comparten estado entre `describe` blocks. Cada test debería ser
   independiente o usar `beforeEach` para reset.
 - ❌ Tests que tocan el filesystem real. Usar pglite o mocks.

@@ -365,6 +365,8 @@ export const createXRepo = (db: Db) => ({
 | Anti-patrón | Por qué duele | Qué hacer en su lugar |
 |---|---|---|
 | `throw new Error('not found')` en handler | Tipo de retorno miente; consumidor no sabe que puede fallar | `return failure({ kind: 'NotFound', ... })` |
+| `throw` en `VerifyFn` (auth middleware) | Un token inválido o una red caída tiran el middleware → 500 global | Return `null`; el middleware decide 401. Ver `references/auth.md` |
+| `fetch` sin `try/catch` en handler/route | Error de red explota como 500 no controlado | Wrap en `try/catch`, retornar `failure({ kind: 'Unknown' })` o 502 |
 | `c.req.json()` directo en ruta | Sin validación, sin tipos, sin OpenAPI | `zValidator('json', schema)` o `createRoute` con `request.body` |
 | Repo con `findAll()`, `findByCustomer()`, `findActive()` | El repo se vuelve God object; los reads necesitan flexibility distinta | Query handler con `ReadContext` y proyección directa |
 | Clase `QuotesService` con `_repo`, `_logger` privados | Constructor + mocks complejos; no compone | Factory function que cierra sobre deps |
@@ -372,6 +374,11 @@ export const createXRepo = (db: Db) => ({
 | Mockear el módulo `db/client` con `mock.module()` | Frágil, acoplado a estructura interna | Pasar `Db` mockeado como dep al handler |
 | Importar `features/A` desde `features/B` | Acopla slices; rompe la promesa de vertical slice | Domain event o join en read-side |
 | Exponer el agregado completo en GET | Filtra detalles internos, viola encapsulación | DTO específico del endpoint, proyectado en query handler |
+| Over-engineering: agregar helpers no solicitados (`mapResult`, `flatMap`, factories, etc.) | YAGNI violado; superficie de API crece sin necesidad | Implementar solo lo que pide el spec. Agregar helpers cuando se repiten 3+ veces |
+| `buildXRoutes()` sin parámetro `deps` | Rompe inyección de dependencias; tests no pueden mockear | `buildXRoutes(deps: AppDeps)` siempre, aunque no use todas las deps |
+| Casts inseguros (`as object`, `as any`) | Erosión de type safety; errores en runtime | Tipar correctamente o usar constraints (`extends JSONValue`) |
+| Test data que viola contratos Zod (ej. `'u1'` en campo `uuid()`) | Test pasa pero no valida el contrato real | Usar `crypto.randomUUID()` o datos que satisfagan el schema |
+| JSDoc / comments / identifiers en español | Regla del skill: docs en español, código en inglés | Identifiers y JSDoc en inglés siempre |
 
 ---
 

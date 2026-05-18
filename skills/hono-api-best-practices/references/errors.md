@@ -98,6 +98,10 @@ loguea con stack, y devuelve 500 con un body neutro `{ kind: 'Unknown', requestI
 
 - ❌ `throw new HttpException(404, 'not found')`. Tipo de retorno miente y se
   pierde el switch exhaustivo.
+- ❌ `throw` en `VerifyFn` (auth middleware). Un token inválido o red caída tiran
+  el middleware → 500 global. Return `null`; el middleware decide 401.
+- ❌ `fetch` sin `try/catch` en handler o `VerifyFn`. Errores de red explotan como
+  500 no controlados. Wrap en `try/catch`, retornar `failure()` o `null`.
 - ❌ Convertir errores comunes en `Unknown`. Cada caso conocido tiene su kind.
 - ❌ Filtrar detalles internos en el body de respuesta (stack trace, query, etc.).
   Loguear sí; devolver al cliente no.
@@ -105,6 +109,8 @@ loguea con stack, y devuelve 500 con un body neutro `{ kind: 'Unknown', requestI
   switch exhaustivo no escala con `instanceof` chains.
 - ❌ Olvidar mapear un kind nuevo: agregar a `AppError` debe forzar agregar a
   `to-http.ts`. Mantené el switch exhaustivo (sin `default`).
+- ❌ Over-engineering: agregar helpers no solicitados (`mapResult`, `flatMap`, etc.).
+  Implementar solo lo que pide el spec. Agregar helpers cuando se repiten 3+ veces.
 
 ## Result en otros idiomas
 

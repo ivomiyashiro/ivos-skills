@@ -122,6 +122,138 @@ export const verifyAAAS: VerifyFn = async (token) => {
 
 (Cachear esta validación con TTL corto si el volumen lo justifica.)
 
+---
+
+## Ejemplo: Auth proxy a servicio externo (Supabase, Firebase, Cognito)
+
+Cuando el backend actúa como **proxy de auth** (el frontend no habla directo con el provider), separá responsabilidades:
+
+- **`features/auth/services/auth-provider.ts`** — lógica de comunicación con el provider externo (fetch, headers, error mapping).
+- **`features/auth/routes.ts`** — solo orquesta: valida input → llama al service → retorna response.
+
+### Service externo
+
+```ts
+// features/auth/services/supabase-auth.ts
+import { env } from '@shared/config/env';
+
+export type SupabaseAuthResponse = {
+  access_token: string;
+  refresh_token: string;
+  user: { id: string; email: string };
+};
+
+const supabaseHeaders = () => ({
+  'content-type': 'application/json',
+  'apikey': env.SUPABASE_ANON_KEY,
+});
+
+export const supabaseAuth = {
+  register: async (email: string, password: string): Promise<SupabaseAuthResponse> => {
+    const res = await fetch(`${env.SUPABASE_URL}/auth/v1/signup`, {
+      method: 'POST',
+      headers: supabaseHeaders(),
+      body: JSON.stringify({ email, password }),
+    });
+    if (!res.ok) throw new Error(`Supabase signup failed: ${res.status}`);
+    return res.json();
+  },
+
+  login: async (email: string, password: string): Promise<SupabaseAuthResponse> => {
+    const res = await fetch(`${env.SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+      method: 'POST',
+      headers: supabaseHeaders(),
+      body: JSON.stringify({ email, password }),
+    });
+    if (!res.ok) throw new Error(`Supabase login failed: ${res.status}`);
+    return res.json();
+  },
+
+  refresh: async (refreshToken: string): Promise<SupabaseAuthResponse> => {
+    const res = await fetch(`${env.SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+      method: 'POST',
+      headers: supabaseHeaders(),
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+    if (!res.ok) throw new Error(`Supabase refresh failed: ${res.status}`);
+    return res.json();
+  },
+
+  verifyToken: async (token: string): Promise<{ id: string } | null> => {
+    try {
+      const res = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, {
+        headers: { ...supabaseHeaders(), 'Authorization': `Bearer ${token}` },
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return { id: data.id };
+    } catch {
+      return null; // network failure → null, never throw
+    }
+  },
+};
+```
+
+**Reglas del service externo:**
+- Encapsula TODO el conocimiento del provider (URLs, headers, grant types).
+- Los métodos pueden **throw** internamente (son errores de infraestructura), pero `verifyToken` debe **nunca throw** porque se usa como `VerifyFn`.
+- El route handler atrapa con `try/catch` y mapea a `Result` o a un status controlado (ej. 502).
+
+### Router (solo orquestación)
+
+```ts
+// features/auth/routes.ts
+import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
+import { toHttpResponse } from '@shared/errors/to-http';
+import { supabaseAuth } from './services/supabase-auth';
+
+export const buildAuthRoutes = (_deps: AppDeps) => {
+  const r = new OpenAPIHono<AppEnv>();
+
+  const registerSpec = createRoute({
+    method: 'post',
+    path: '/register',
+    request: { body: { content: { 'application/json': { schema: RegisterInput } } } },
+    responses: { 201: { description: 'Created' }, 400: { description: 'Bad request' } },
+  });
+
+  r.openapi(registerSpec, async (c) => {
+    try {
+      const { email, password } = c.req.valid('json');
+      const data = await supabaseAuth.register(email, password);
+      return c.json(data, 201);
+    } catch {
+      return c.json({ kind: 'Unknown', message: 'Auth service unavailable' }, 502);
+    }
+  });
+
+  // ... login, refresh igual
+
+  return r;
+};
+```
+
+**Reglas del router:**
+- No contiene URLs, headers, ni lógica del provider.
+- Solo valida input (Zod), llama al service, y retorna response o error controlado.
+- Si el service throw (infraestructura), el handler lo atrapa y retorna 502.
+
+### VerifyFn wiring
+
+```ts
+// app.ts
+import { authMiddleware } from '@shared/middlewares/auth';
+import { supabaseAuth } from './features/auth/services/supabase-auth';
+
+const verifySupabaseJwt: VerifyFn = async (token) => {
+  const user = await supabaseAuth.verifyToken(token);
+  if (!user) return null;
+  return { userId: user.id, roles: [], claims: {} };
+};
+
+app.use('*', authMiddleware(verifySupabaseJwt));
+```
+
 ## API Keys
 
 ```ts
