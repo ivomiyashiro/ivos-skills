@@ -2,6 +2,8 @@
   "name": "ivos-skills",
   "version": "1.0.0",
   "description": "Coleccion de skills para agentes de IA (OpenCode, Claude Code, Copilot CLI, Gemini CLI)",
+  "type": "module",
+  "main": ".opencode/plugins/ivos-skills.js",
   "keywords": [
     "skills",
     "opencode",

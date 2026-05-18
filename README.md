@@ -1,17 +1,42 @@
 # ivos-skills
 
-Coleccion de skills para agentes de IA (OpenCode, Claude Code, Copilot CLI, Gemini CLI, etc.).
+Coleccion personal de skills para agentes de IA (OpenCode, Claude Code, Copilot CLI, Gemini CLI, etc.).
 
 ## Instalacion
 
-Usa el Skills CLI para instalar todo el paquete o skills individuales:
+La instalacion varia segun el agente que uses. Si usas mas de uno, instala ivos-skills por separado en cada uno.
+
+### OpenCode
+
+OpenCode usa su propio sistema de plugins. Instala ivos-skills por separado aunque ya lo uses en otro agente.
+
+1. Abre tu `opencode.json` global (o de proyecto) y agrega ivos-skills al array `plugin`:
+
+```json
+{
+  "plugin": ["ivos-skills@git+https://github.com/USERNAME/ivos-skills.git"]
+}
+```
+
+2. Reinicia OpenCode. El plugin se instala automaticamente a traves del gestor de plugins de OpenCode y registra todas las skills.
+
+3. Verifica preguntando: "List my available skills" o usa la herramienta `skill`.
+
+Para mas detalles, consulta [`.opencode/INSTALL.md`](.opencode/INSTALL.md).
+
+### Skills CLI (multi-agente)
+
+Si prefieres usar el CLI de skills para instalar todo el paquete o skills individuales:
 
 ```bash
 # Instalar todo el paquete globalmente
-npx skills add github-username/ivos-skills -g -y
+npx skills add USERNAME/ivos-skills -g -y
 
 # Instalar una skill especifica
-npx skills add github-username/ivos-skills --skill nombre-skill -g -y
+npx skills add USERNAME/ivos-skills --skill nombre-skill -g -y
+
+# Listar skills disponibles en el paquete
+npx skills add USERNAME/ivos-skills -l
 ```
 
 ## Skills incluidas
@@ -59,7 +84,7 @@ skills/
 
 ## Requisitos
 
-- [Node.js](https://nodejs.org/) (para usar `npx skills`)
+- [Node.js](https://nodejs.org/) (para usar `npx skills` o el plugin de OpenCode)
 - Un agente compatible con el ecosistema de skills (OpenCode, Claude Code, etc.)
 
 ## Licencia
