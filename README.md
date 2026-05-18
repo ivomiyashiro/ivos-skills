@@ -1,0 +1,67 @@
+# ivos-skills
+
+Coleccion de skills para agentes de IA (OpenCode, Claude Code, Copilot CLI, Gemini CLI, etc.).
+
+## Instalacion
+
+Usa el Skills CLI para instalar todo el paquete o skills individuales:
+
+```bash
+# Instalar todo el paquete globalmente
+npx skills add github-username/ivos-skills -g -y
+
+# Instalar una skill especifica
+npx skills add github-username/ivos-skills --skill nombre-skill -g -y
+```
+
+## Skills incluidas
+
+| Skill | Descripcion |
+|-------|-------------|
+| `brainstorming` | Use when starting any creative work, creating features, building components, adding functionality, or modifying behavior |
+| `dispatching-parallel-agents` | Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies |
+| `executing-plans` | Use when you have a written implementation plan to execute in a separate session with review checkpoints |
+| `find-skills` | Helps users discover and install agent skills when they ask questions like "how do I do X" |
+| `finishing-a-development-branch` | Use when implementation is complete, all tests pass, and you need to decide how to integrate the work |
+| `flutter-add-integration-test` | Configures Flutter Driver for app interaction and converts MCP actions into permanent integration tests |
+| `flutter-add-widget-preview` | Adds interactive widget previews to the project using the previews.dart system |
+| `flutter-add-widget-test` | Implement a component-level test using `WidgetTester` to verify UI rendering and user interactions |
+| `flutter-apply-architecture-best-practices` | Architects a Flutter application using the recommended layered approach (UI, Logic, Data) |
+| `flutter-build-responsive-layout` | Use `LayoutBuilder`, `MediaQuery`, or `Expanded/Flexible` to create a layout that adapts to different screen sizes |
+| `flutter-fix-layout-issues` | Fixes Flutter layout errors (overflows, unbounded constraints) using Dart and Flutter MCP tools |
+| `flutter-implement-json-serialization` | Create model classes with `fromJson` and `toJson` methods using `dart:convert` |
+| `flutter-setup-declarative-routing` | Configure `MaterialApp.router` using a package like `go_router` for advanced URL-based navigation |
+| `flutter-setup-localization` | Add `flutter_localizations` and `intl` dependencies, enable "generate true" in `pubspec.yaml` |
+| `flutter-use-http-package` | Use the `http` package to execute GET, POST, PUT, or DELETE requests |
+| `frontend-design` | Create distinctive, production-grade frontend interfaces with high design quality |
+| `hono-api-best-practices` | Construir APIs TypeScript opinadas con Hono + Bun siguiendo vertical slice, CQRS lite, Result pattern, Zod |
+| `react-best-practices` | React and Next.js performance optimization guidelines from Vercel Engineering |
+| `receiving-code-review` | Use when receiving code review feedback, before implementing suggestions |
+| `requesting-code-review` | Use when completing tasks, implementing major features, or before merging to verify work meets requirements |
+| `subagent-driven-development` | Use when executing implementation plans with independent tasks in the current session |
+| `systematic-debugging` | Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes |
+| `test-driven-development` | Use when implementing any feature or bugfix, before writing implementation code |
+| `using-git-worktrees` | Use when starting feature work that needs isolation from current workspace or before executing implementation plans |
+| `using-superpowers` | Use when starting any conversation - establishes how to find and use skills |
+| `verification-before-completion` | Use when about to claim work is complete, fixed, or passing, before committing or creating PRs |
+| `writing-plans` | Use when you have a spec or requirements for a multi-step task, before touching code |
+| `writing-skills` | Use when creating new skills, editing existing skills, or verifying skills work before deployment |
+
+## Estructura
+
+Cada skill sigue la convencion estandar:
+```
+skills/
+  nombre-skill/
+    SKILL.md              # Documentacion principal (requerido)
+    archivos-adicionales  # Scripts, templates, referencias (opcional)
+```
+
+## Requisitos
+
+- [Node.js](https://nodejs.org/) (para usar `npx skills`)
+- Un agente compatible con el ecosistema de skills (OpenCode, Claude Code, etc.)
+
+## Licencia
+
+Las skills de terceros mantienen sus licencias originales. Consulta los archivos `LICENSE` o metadatos dentro de cada directorio de skill.

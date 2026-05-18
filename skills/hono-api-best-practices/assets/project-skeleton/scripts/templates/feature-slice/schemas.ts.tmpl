@@ -1,0 +1,57 @@
+import { z } from '@hono/zod-openapi';
+
+/**
+ * Schemas Zod + DTOs del feature __Feature__.
+ */
+
+export const __Feature__Status = z.enum(['draft', 'active', 'archived']);
+export type __Feature__Status = z.infer<typeof __Feature__Status>;
+
+export const __Feature__Dto = z
+  .object({
+    id: z.string().uuid(),
+    name: z.string().min(1),
+    status: __Feature__Status,
+    createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
+  })
+  .openapi('__Feature__Dto');
+export type __Feature__Dto = z.infer<typeof __Feature__Dto>;
+
+export const Create__Feature__Input = z
+  .object({
+    name: z.string().min(1).max(120),
+  })
+  .openapi('Create__Feature__Input');
+export type Create__Feature__Input = z.infer<typeof Create__Feature__Input>;
+
+export const Update__Feature__Input = z
+  .object({
+    name: z.string().min(1).max(120).optional(),
+    status: __Feature__Status.optional(),
+  })
+  .openapi('Update__Feature__Input');
+export type Update__Feature__Input = z.infer<typeof Update__Feature__Input>;
+
+export const __Feature__IdParam = z
+  .object({
+    id: z.string().uuid().openapi({ param: { name: 'id', in: 'path' } }),
+  })
+  .openapi('__Feature__IdParam');
+
+export const List__Features__Query = z
+  .object({
+    status: __Feature__Status.optional(),
+    cursor: z.string().uuid().optional(),
+    limit: z.coerce.number().int().min(1).max(100).default(20),
+  })
+  .openapi('List__Features__Query');
+export type List__Features__Query = z.infer<typeof List__Features__Query>;
+
+export const List__Features__Response = z
+  .object({
+    items: z.array(__Feature__Dto),
+    nextCursor: z.string().uuid().nullable(),
+  })
+  .openapi('List__Features__Response');
+export type List__Features__Response = z.infer<typeof List__Features__Response>;

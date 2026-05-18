@@ -1,0 +1,9 @@
+[install]
+exact = false
+
+[test]
+preload = ["./test/setup.ts"]
+coverage = false
+
+[run]
+bun = true

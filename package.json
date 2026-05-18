@@ -1,0 +1,24 @@
+{
+  "name": "ivos-skills",
+  "version": "1.0.0",
+  "description": "Coleccion de skills para agentes de IA (OpenCode, Claude Code, Copilot CLI, Gemini CLI)",
+  "keywords": [
+    "skills",
+    "opencode",
+    "claude-code",
+    "copilot-cli",
+    "gemini-cli",
+    "agent-skills",
+    "ai-agents"
+  ],
+  "author": "Ivan",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/USERNAME/ivos-skills.git"
+  },
+  "bugs": {
+    "url": "https://github.com/USERNAME/ivos-skills/issues"
+  },
+  "homepage": "https://github.com/USERNAME/ivos-skills#readme"
+}

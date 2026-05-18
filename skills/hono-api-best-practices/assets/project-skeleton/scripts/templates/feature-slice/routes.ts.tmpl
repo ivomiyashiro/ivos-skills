@@ -1,0 +1,77 @@
+import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
+import type { AppEnv } from '@shared/hono/types';
+import { toHttpResponse } from '@shared/errors/to-http';
+import type { AppDeps } from '@/app';
+import {
+  Create__Feature__Input,
+  __Feature__Dto,
+  __Feature__IdParam,
+} from './schemas';
+import { create__Features__Repo } from './repository';
+import { build__Features__ReadContext } from './read-context';
+import { create__Feature__Handler } from './commands/create-__feature__';
+import { get__Feature__ByIdHandler } from './queries/get-__feature__-by-id';
+
+/**
+ * build__Features__Routes — mountear en app.ts con `.route('/__features__', ...)`.
+ */
+export const build__Features__Routes = (deps: AppDeps) => {
+  const r = new OpenAPIHono<AppEnv>();
+
+  const ErrorBody = z.object({ kind: z.string() }).passthrough().openapi('ErrorBody');
+
+  // POST /
+  r.openapi(
+    createRoute({
+      method: 'post',
+      path: '/',
+      tags: ['__features__'],
+      summary: 'Crear un __feature__',
+      request: {
+        body: { content: { 'application/json': { schema: Create__Feature__Input } } },
+      },
+      responses: {
+        201: { description: 'Created', content: { 'application/json': { schema: __Feature__Dto } } },
+        422: { description: 'Validation error', content: { 'application/json': { schema: ErrorBody } } },
+      },
+    }),
+    async (c) => {
+      const result = await create__Feature__Handler(
+        {
+          repo: create__Features__Repo(c.get('db')),
+          eventBus: deps.eventBus,
+          logger: c.get('logger'),
+          clock: deps.clock,
+          userId: c.get('auth')?.userId ?? null,
+        },
+        c.req.valid('json'),
+      );
+      return toHttpResponse(c, result, 201);
+    },
+  );
+
+  // GET /:id
+  r.openapi(
+    createRoute({
+      method: 'get',
+      path: '/{id}',
+      tags: ['__features__'],
+      summary: 'Obtener un __feature__ por ID',
+      request: { params: __Feature__IdParam },
+      responses: {
+        200: { description: 'OK', content: { 'application/json': { schema: __Feature__Dto } } },
+        404: { description: 'Not found', content: { 'application/json': { schema: ErrorBody } } },
+      },
+    }),
+    async (c) => {
+      const { id } = c.req.valid('param');
+      const result = await get__Feature__ByIdHandler(
+        build__Features__ReadContext(c),
+        { id },
+      );
+      return toHttpResponse(c, result, 200);
+    },
+  );
+
+  return r;
+};
