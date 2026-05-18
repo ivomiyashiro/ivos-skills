@@ -10,7 +10,7 @@ Add ivos-skills to the `plugin` array in your `opencode.json` (global or project
 
 ```json
 {
-  "plugin": ["ivos-skills@git+https://github.com/USERNAME/ivos-skills.git"]
+  "plugin": ["ivos-skills@git+https://github.com/ivomiyashiro/ivos-skills.git"]
 }
 ```
 
@@ -24,7 +24,7 @@ If you prefer to install only specific skills instead of the entire plugin, you 
 
 ```bash
 # Install a specific skill globally
-npx skills add USERNAME/ivos-skills --skill nombre-skill -g -y
+npx skills add ivomiyashiro/ivos-skills --skill nombre-skill -g -y
 ```
 
 ## Updating
@@ -35,7 +35,7 @@ To pin a specific version:
 
 ```json
 {
-  "plugin": ["ivos-skills@git+https://github.com/USERNAME/ivos-skills.git#v1.0.0"]
+  "plugin": ["ivos-skills@git+https://github.com/ivomiyashiro/ivos-skills.git#v1.0.0"]
 }
 ```
 
@@ -57,7 +57,7 @@ To pin a specific version:
 Some Windows OpenCode builds may have issues with git-backed plugin specs. If OpenCode cannot install the plugin, try installing with system npm and pointing OpenCode at the local package:
 
 ```powershell
-npm install ivos-skills@git+https://github.com/USERNAME/ivos-skills.git --prefix "$HOME\.config\opencode"
+npm install ivos-skills@git+https://github.com/ivomiyashiro/ivos-skills.git --prefix "$HOME\.config\opencode"
 ```
 
 Then use the installed package path in `opencode.json`:

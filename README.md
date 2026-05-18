@@ -14,7 +14,7 @@ OpenCode usa su propio sistema de plugins. Instala ivos-skills por separado aunq
 
 ```json
 {
-  "plugin": ["ivos-skills@git+https://github.com/USERNAME/ivos-skills.git"]
+  "plugin": ["ivos-skills@git+https://github.com/ivomiyashiro/ivos-skills.git"]
 }
 ```
 
@@ -30,13 +30,13 @@ Si prefieres usar el CLI de skills para instalar todo el paquete o skills indivi
 
 ```bash
 # Instalar todo el paquete globalmente
-npx skills add USERNAME/ivos-skills -g -y
+npx skills add ivomiyashiro/ivos-skills -g -y
 
 # Instalar una skill especifica
-npx skills add USERNAME/ivos-skills --skill nombre-skill -g -y
+npx skills add ivomiyashiro/ivos-skills --skill nombre-skill -g -y
 
 # Listar skills disponibles en el paquete
-npx skills add USERNAME/ivos-skills -l
+npx skills add ivomiyashiro/ivos-skills -l
 ```
 
 ## Skills incluidas
