@@ -50,6 +50,7 @@ npx skills update ivos-skills -g
 | Skill | Descripcion |
 |-------|-------------|
 | `brainstorming` | Use when starting any creative work, creating features, building components, adding functionality, or modifying behavior |
+| `clean-code` | Write readable, maintainable code through disciplined naming, small functions, and clean error handling |
 | `dispatching-parallel-agents` | Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies |
 | `executing-plans` | Use when you have a written implementation plan to execute in a separate session with review checkpoints |
 | `find-skills` | Helps users discover and install agent skills when they ask questions like "how do I do X" |
