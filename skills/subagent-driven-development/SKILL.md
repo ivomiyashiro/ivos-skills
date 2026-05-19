@@ -130,6 +130,10 @@ Implementer subagents report one of four statuses. Handle each appropriately:
 - `./spec-reviewer-prompt.md` - Dispatch spec compliance reviewer subagent
 - `./code-quality-reviewer-prompt.md` - Dispatch code quality reviewer subagent
 
+### Visual Mock Reference
+
+When a task includes `**Visual Reference:**`, the controller MUST include the mock content (or a clear description of the referenced section) in the implementer prompt. The implementer should treat the mock as part of the spec. The spec reviewer MUST verify that the implemented output matches the mock's structure, layout, and styling.
+
 ## Example Workflow
 
 ```

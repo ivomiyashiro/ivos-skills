@@ -26,10 +26,11 @@ You MUST create a task for each of these items and complete them in order:
 3. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
 4. **Propose 2-3 approaches** — with trade-offs and your recommendation
 5. **Present design** — in sections scaled to their complexity, get user approval after each section
-6. **Write design doc** — save to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` and commit
-7. **Spec self-review** — quick inline check for placeholders, contradictions, ambiguity, scope (see below)
-8. **User reviews written spec** — ask user to review the spec file before proceeding
-9. **Transition to implementation** — invoke writing-plans skill to create implementation plan (Macro Plan + task files)
+6. **Create visual mocks** — if the project involves UI/frontend, generate `docs/superpowers/mocks/index.html` with all screens/components in styled sections. This is a hard gate: the human must approve the mocks before proceeding. Only skip if the user explicitly requests it.
+7. **Write design doc** — save to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` and commit
+8. **Spec self-review** — quick inline check for placeholders, contradictions, ambiguity, scope (see below)
+9. **User reviews written spec** — ask user to review the spec file before proceeding
+10. **Transition to implementation** — invoke writing-plans skill to create implementation plan (Macro Plan + task files)
 
 ## Process Flow
 
@@ -42,6 +43,9 @@ digraph brainstorming {
     "Propose 2-3 approaches" [shape=box];
     "Present design sections" [shape=box];
     "User approves design?" [shape=diamond];
+    "Has UI/frontend?" [shape=diamond];
+    "Create visual mocks" [shape=box];
+    "User approves mocks?" [shape=diamond];
     "Write design doc" [shape=box];
     "Spec self-review\n(fix inline)" [shape=box];
     "User reviews spec?" [shape=diamond];
@@ -55,7 +59,12 @@ digraph brainstorming {
     "Propose 2-3 approaches" -> "Present design sections";
     "Present design sections" -> "User approves design?";
     "User approves design?" -> "Present design sections" [label="no, revise"];
-    "User approves design?" -> "Write design doc" [label="yes"];
+    "User approves design?" -> "Has UI/frontend?" [label="yes"];
+    "Has UI/frontend?" -> "Create visual mocks" [label="yes"];
+    "Has UI/frontend?" -> "Write design doc" [label="no"];
+    "Create visual mocks" -> "User approves mocks?";
+    "User approves mocks?" -> "Create visual mocks" [label="no, revise"];
+    "User approves mocks?" -> "Write design doc" [label="yes"];
     "Write design doc" -> "Spec self-review\n(fix inline)";
     "Spec self-review\n(fix inline)" -> "User reviews spec?";
     "User reviews spec?" -> "Write design doc" [label="changes requested"];
@@ -167,3 +176,35 @@ A question about a UI topic is not automatically a visual question. "What does p
 
 If they agree to the companion, read the detailed guide before proceeding:
 `skills/brainstorming/visual-companion.md`
+
+## Visual Mocks
+
+After the user approves the conceptual design, if the project involves UI/frontend, you MUST create a visual mock before writing the design doc or invoking writing-plans. This is a **hard gate**: do not proceed without explicit user approval of the mocks, unless the user explicitly asks to skip this step.
+
+### Purpose
+
+The visual mock is a single static HTML file (`docs/superpowers/mocks/index.html`) that shows all screens, components, and states in one scrollable view. It serves as the **visual contract** between human and agent. Every frontend task in the implementation plan will reference a section of this mock.
+
+### Rules
+
+- **One file only**: `docs/superpowers/mocks/index.html`. CSS is embedded in `<style>`.
+- **Static**: No JavaScript, no interactivity, no navigation between pages. Pure HTML + CSS.
+- **Storybook-style layout**: Each screen or component is a `<section>` with a clear heading and ID. The human scrolls through one file to see everything.
+- **Faithful to the approved design**: Colors, typography, spacing, layout, and structure must match the design the user approved. This is not a wireframe of options — it is the final visual target.
+- **Include all states**: Empty state, loading state, error state, populated state — whatever is relevant.
+
+### Process
+
+1. After the user approves the conceptual design, check: does this project have UI/frontend?
+   - If yes: proceed to create mocks.
+   - If no: skip to writing the design doc.
+2. Create `docs/superpowers/mocks/index.html` following the guide in `skills/brainstorming/visual-mocks.md`.
+3. Present the mock to the user:
+   > "I've created the visual mock for the approved design. Please open `docs/superpowers/mocks/index.html` in your browser and review it. Let me know if any adjustments are needed. We won't start the implementation plan until you confirm the visual looks correct."
+4. If the user requests changes, iterate on the mock file. Never reuse filenames — create `index-v2.html`, `index-v3.html`, etc.
+5. Once approved, proceed to write the design doc and then invoke `writing-plans`.
+
+### Link to detailed guide
+
+For the full guide on creating mocks (template, examples, tips), read:
+`skills/brainstorming/visual-mocks.md`

@@ -71,9 +71,13 @@ For each task listed in the Macro Plan:
      5. Refactor if the task includes a refactor step or if you see cleanup opportunities.
    - If the task already follows TDD order (test first, then implement), execute it exactly as written.
    - **Never write production code without a failing test first.** If a task has no test step and writes code, add the test step yourself before touching implementation.
-4. Follow each step exactly (task files have bite-sized steps)
-5. Run verifications as specified
-6. Mark as completed in TodoWrite
+4. **If the task contains `**Visual Reference:**`:**
+   - Open the referenced mock file and section before writing any code.
+   - Use the mock as the visual specification: replicate its HTML structure, CSS classes, layout, spacing, colors, and typography.
+   - The final implementation must be visually faithful to the approved mock.
+5. Follow each step exactly (task files have bite-sized steps)
+6. Run verifications as specified
+7. Mark as completed in TodoWrite
 
 ### Step 3: Complete Development
 

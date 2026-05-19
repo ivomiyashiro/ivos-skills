@@ -142,7 +142,11 @@ Each subtask lives in its own file (`task-NN-<kebab-name>.md`). This keeps tasks
 - Always include `superpowers:test-driven-development` if this task writes/modifies code.
 - If none beyond implicit TDD, write: `superpowers:test-driven-development` (implicit)
 
-**Prerequisites (if any):** [Only list direct prerequisites — things that MUST exist before this task starts. If none, write "None."]
+**Visual Reference (if frontend/UI task):**
+- `docs/superpowers/mocks/index.html#<section-id>` — the mock section this task must replicate.
+- If no mock exists or task is not UI-related, write: "None."
+
+**Prerequisites (if any): [Only list direct prerequisites — things that MUST exist before this task starts. If none, write "None."]
 
 **Context for the executor:** [2–3 sentences explaining WHY this task exists and how it fits into the bigger picture. The executor has not read the rest of the plan.]
 
@@ -242,14 +246,15 @@ After writing the complete plan, run this checklist on yourself:
 ### 6.1 Spec Coverage
 Skim each section/requirement in the spec. Can you point to a subtask that implements it? List any gaps and add subtasks.
 
-### 6.2 Skill Annotation Check
+### 6.2 Skill and Visual Reference Annotation Check
 **For every task file:**
 1. Does it have a `**Skills:**` field?
 2. Are the listed skills relevant to the task's domain?
 3. Did you discover these skills via `find-skills` during planning, or are they just generic defaults?
 4. Are the skill names exact (e.g., `superpowers:react-best-practices`, not just "React skill")?
+5. **If the task involves UI/frontend:** Does it have a `**Visual Reference:**` field pointing to the correct section in `docs/superpowers/mocks/index.html`?
 
-**If a task file lacks skill annotations or has incorrect ones, fix them.** The executor relies on these annotations to load the right skills.
+**If a task file lacks skill annotations, visual references, or has incorrect ones, fix them.** The executor relies on these annotations to load the right skills and replicate the approved design.
 
 ### 6.3 TDD Compliance Scan
 **For every task file that writes or modifies code:**
