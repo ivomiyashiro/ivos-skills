@@ -1,0 +1,52 @@
+import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
+import { buildApp, systemClock } from '@/app';
+import { createEventBus } from '@shared/events/event-bus';
+import { silentLogger } from '@test/helpers';
+import { buildTestDb } from '@test/helpers/db';
+
+/**
+ * Tests de integración con pglite. Recordá agregar tu tabla al CREATE TABLE
+ * del helper buildTestDb (test/helpers/db.ts) antes de des-skipear los tests
+ * de POST/PUT/GET que dependan de persistencia real.
+ */
+
+let app: ReturnType<typeof buildApp>;
+let closeDb: () => Promise<void>;
+
+beforeAll(async () => {
+  const testDb = await buildTestDb();
+  closeDb = testDb.close;
+  app = buildApp({
+    db: testDb.db,
+    logger: silentLogger,
+    eventBus: createEventBus(),
+    clock: systemClock,
+  });
+});
+
+afterAll(async () => {
+  await closeDb();
+});
+
+describe('POST /__features__', () => {
+  test.skip('201 con input válido — habilitar cuando la tabla esté en test DB', async () => {
+    const res = await app.request('/__features__', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'test' }),
+    });
+    expect(res.status).toBe(201);
+  });
+});
+
+describe('GET /__features__/:id', () => {
+  test('422 con UUID inválido (validación de param)', async () => {
+    // createApiRouter instala defaultHook que mapea Zod errors a 422 con
+    // AppError.Validation. Ver shared/hono/router.ts.
+    const res = await app.request('/__features__/not-a-uuid');
+    expect(res.status).toBe(422);
+    const body = (await res.json()) as { kind: string; issues: unknown[] };
+    expect(body.kind).toBe('Validation');
+    expect(Array.isArray(body.issues)).toBe(true);
+  });
+});

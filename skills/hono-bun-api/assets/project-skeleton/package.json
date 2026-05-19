@@ -1,0 +1,41 @@
+{
+  "name": "hono-bun-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch run src/server.ts",
+    "start": "bun run src/server.ts",
+    "build": "bun build src/server.ts --target=bun --outdir=dist",
+    "test": "bun test",
+    "test:watch": "bun test --watch",
+    "typecheck": "tsc --noEmit",
+    "check": "bun run scripts/check.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
+    "scaffold": "bun run scripts/scaffold-feature.ts"
+  },
+  "dependencies": {
+    "hono": "^4.6.0",
+    "@hono/zod-openapi": "^0.16.0",
+    "@hono/zod-validator": "^0.4.0",
+    "@scalar/hono-api-reference": "^0.5.0",
+    "zod": "^3.23.0",
+    "jose": "^5.9.0",
+    "pino": "^9.0.0",
+    "prom-client": "^15.1.0",
+    "drizzle-orm": "^0.36.0",
+    "postgres": "^3.4.0"
+  },
+  "optionalDependencies": {
+    "@supabase/supabase-js": "^2.45.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@electric-sql/pglite": "^0.2.0",
+    "drizzle-kit": "^0.28.0",
+    "pino-pretty": "^11.0.0",
+    "typescript": "^5.6.0"
+  }
+}

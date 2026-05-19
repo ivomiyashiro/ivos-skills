@@ -66,7 +66,7 @@ npx skills update ivos-skills -g
 | `flutter-setup-localization` | Add `flutter_localizations` and `intl` dependencies, enable "generate true" in `pubspec.yaml` |
 | `flutter-use-http-package` | Use the `http` package to execute GET, POST, PUT, or DELETE requests |
 | `frontend-design` | Create distinctive, production-grade frontend interfaces with high design quality |
-| `hono-api-best-practices` | Construir APIs TypeScript opinadas con Hono + Bun siguiendo vertical slice, CQRS lite, Result pattern, Zod |
+| `hono-bun-api` | Construir APIs TypeScript opinadas con Hono + Bun siguiendo vertical slice, CQRS lite, Result pattern, Zod |
 | `react-best-practices` | React and Next.js performance optimization guidelines from Vercel Engineering |
 | `receiving-code-review` | Use when receiving code review feedback, before implementing suggestions |
 | `requesting-code-review` | Use when completing tasks, implementing major features, or before merging to verify work meets requirements |

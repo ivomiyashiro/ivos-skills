@@ -1,0 +1,33 @@
+import pino from 'pino';
+import type { EventBus, DomainEvent } from '@shared/events/event-bus';
+import type { Clock } from '@/app';
+
+/** Logger silencioso para tests. No imprime nada, no rompe el output. */
+export const silentLogger = pino({ level: 'silent' });
+
+/** EventBus no-op para tests que no inspeccionan eventos. */
+export const noopBus: EventBus = {
+  publish: () => {},
+  publishMany: () => {},
+  on: () => {},
+  off: () => {},
+};
+
+/** Recolector de eventos para verificar publish calls en tests. */
+export const createRecordingBus = () => {
+  const events: DomainEvent[] = [];
+  return {
+    bus: {
+      publish: (e: DomainEvent) => events.push(e),
+      publishMany: (es: DomainEvent[]) => events.push(...es),
+      on: () => {},
+      off: () => {},
+    } satisfies EventBus,
+    events,
+  };
+};
+
+/** Clock fijo para tests determinísticos. */
+export const fixedClock = (date: Date | string = '2026-05-12T00:00:00Z'): Clock => ({
+  now: () => (typeof date === 'string' ? new Date(date) : date),
+});
