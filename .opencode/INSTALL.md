@@ -4,38 +4,37 @@
 
 - [OpenCode.ai](https://opencode.ai) installed
 
-## Installation
+## Installation (Recommended: pinned tag)
 
-Add ivos-skills to the `plugin` array in your `opencode.json` (global or project-level):
+**Always use a pinned tag** so OpenCode can detect updates when you change the version:
 
 ```json
 {
-  "plugin": ["ivos-skills@git+https://github.com/ivomiyashiro/ivos-skills.git"]
+  "plugin": ["ivos-skills@git+https://github.com/ivomiyashiro/ivos-skills.git#v1.1.0"]
 }
 ```
 
-Restart OpenCode. The plugin installs through OpenCode's plugin manager and registers all skills automatically.
+Add this to your `opencode.json` (global at `~/.config/opencode/opencode.json` or project-level at `./.opencode.json`), then restart OpenCode.
+
+The plugin installs through OpenCode's plugin manager and registers all skills automatically.
 
 Verify by asking: "List my available skills" or use the `skill` tool.
 
-## Installing individual skills
+> **Why a pinned tag?** OpenCode caches git-backed plugins. Without a tag, it may stick to the first version it downloaded and never pick up new updates. Changing the tag (e.g. `#v1.1.0` → `#v1.2.0`) tells OpenCode explicitly that there is a new version to fetch.
 
-If you prefer to install only specific skills instead of the entire plugin, you can use the Skills CLI:
+## Updating to a new version
 
-```bash
-# Install a specific skill globally
-npx skills add ivomiyashiro/ivos-skills --skill nombre-skill -g -y
+When a new release is available, update the tag in your `opencode.json` and restart OpenCode:
+
+```json
+{
+  "plugin": ["ivos-skills@git+https://github.com/ivomiyashiro/ivos-skills.git#v1.2.0"]
+}
 ```
 
-## Updating
+### Force reinstall (if changing the tag doesn't update)
 
-OpenCode installs ivos-skills through a git-backed package spec. To update to the latest version:
-
-### Option 1: Restart OpenCode (automatic)
-Just restart OpenCode. It will check for updates on the git repository automatically.
-
-### Option 2: Force reinstall (if restart doesn't pick up changes)
-If OpenCode has cached an old version and restarting doesn't update:
+If OpenCode has cached an old version:
 
 ```bash
 # Remove the cached plugin
@@ -45,24 +44,23 @@ rm -rf ~/.config/opencode/node_modules/ivos-skills
 Remove-Item -Recurse -Force "$env:USERPROFILE\.config\opencode\node_modules\ivos-skills"
 ```
 
-Then restart OpenCode again.
+Then restart OpenCode.
 
-### Option 3: Update via npm
+### Update via npm
+
 ```bash
 # Update the git-backed package
 npm install ivos-skills@git+https://github.com/ivomiyashiro/ivos-skills.git --prefix ~/.config/opencode
 ```
 
-### Pinning a version
-To stay on a specific version and avoid automatic updates:
+## Installing individual skills
 
-```json
-{
-  "plugin": ["ivos-skills@git+https://github.com/ivomiyashiro/ivos-skills.git#v1.0.0"]
-}
+If you prefer to install only specific skills instead of the entire plugin, you can use the Skills CLI:
+
+```bash
+# Install a specific skill globally
+npx skills add ivomiyashiro/ivos-skills --skill nombre-skill -g -y
 ```
-
-Use a git tag (e.g., `#v1.0.0`) or commit hash (e.g., `#a1b2c3d`) to pin.
 
 ## Troubleshooting
 
