@@ -6,6 +6,22 @@ Coleccion personal de skills para agentes de IA (OpenCode, Claude Code, Copilot 
 
 La instalacion varia segun el agente que uses. Si usas mas de uno, instala ivos-skills por separado en cada uno.
 
+Para instrucciones detalladas de instalacion, consulta [INSTALL.md](INSTALL.md).
+
+### Claude Code
+
+```bash
+# Agregar el marketplace y luego instalar el plugin
+claude plugins marketplace add ivomiyashiro/ivos-skills
+claude plugins install ivos-skills@ivos-skills
+```
+
+Reinicia Claude Code. Todas las skills quedan disponibles automaticamente. Para actualizar:
+
+```bash
+claude plugins update ivos-skills
+```
+
 ### OpenCode
 
 OpenCode usa su propio sistema de plugins. Instala ivos-skills por separado aunque ya lo uses en otro agente.
@@ -80,6 +96,12 @@ npx skills update ivos-skills -g
 | `writing-skills` | Use when creating new skills, editing existing skills, or verifying skills work before deployment |
 
 ## Mantener actualizado
+
+### Claude Code (plugin)
+
+```bash
+claude plugins update ivos-skills
+```
 
 ### OpenCode (plugin)
 
