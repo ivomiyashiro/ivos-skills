@@ -9,6 +9,8 @@ description: Use when implementing any feature or bugfix, before writing impleme
 
 Write the test first. Watch it fail. Write minimal code to pass.
 
+**Domain awareness:** Read `CONTEXT.md` (domain glossary) if it exists — test names and public interface vocabulary must match the project's language. Check `docs/adr/` for decisions in the area you're testing; don't re-litigate them.
+
 **Core principle:** If you didn't watch the test fail, you don't know if it tests the right thing.
 
 **Violating the letter of the rules is violating the spirit of the rules.**
@@ -43,6 +45,53 @@ Write code before the test? Delete it. Start over.
 - Delete means delete
 
 Implement fresh from tests. Period.
+
+## Anti-Pattern: Horizontal Slicing
+
+Writing all tests first and then all implementation is **not TDD**. That is horizontal slicing.
+
+```
+WRONG (horizontal):
+  RED:   test1, test2, test3, test4, test5
+  GREEN: impl1, impl2, impl3, impl4, impl5
+
+RIGHT (vertical):
+  RED→GREEN: test1→impl1
+  RED→GREEN: test2→impl2
+  RED→GREEN: test3→impl3
+```
+
+**Why it fails:**
+
+- Tests written in bulk test *imagined* behavior, not real behavior. You are guessing what the API will look like before you have proven it works.
+- You end up testing the *shape* of things — data structures, function signatures — instead of user-visible behavior.
+- Tests become insensitive to real breaks: they pass when behavior is broken, fail when it is correct.
+
+**The correct approach: vertical slices via tracer bullets.**
+
+One test → one implementation → repeat. Each cycle proves the path works before you extend it.
+
+## Tracer Bullet
+
+Before building out a full feature, write **one test that confirms one thing** about the system end-to-end. This is the tracer bullet — it proves the path exists and works.
+
+- Pick the most fundamental behavior (the one everything else depends on)
+- Write one test for it
+- Make it pass with minimal code
+- Once green, repeat for remaining behaviors in priority order
+
+The tracer bullet is not a special phase — it is just the first RED→GREEN cycle, chosen deliberately.
+
+## Design Interfaces for Testability
+
+Before writing any test or production code, spend a moment on design:
+
+1. **What interface changes are needed?** Confirm with your human partner before touching existing APIs.
+2. **Are there deep module opportunities?** Look for places where a small public interface can hide a large implementation. Small surface = easier to test, easier to change.
+3. **List the *behaviors* to test, not the implementation steps.** "User can checkout with a valid cart" — not "CartService calls PaymentGateway.charge()".
+4. **You cannot test everything.** Confirm with your human partner which behaviors matter most before writing any test.
+
+Hard to test = hard to use. If the interface is painful to test, the design is wrong. Redesign before implementing.
 
 ## Red-Green-Refactor
 
@@ -195,6 +244,22 @@ Keep tests green. Don't add behavior.
 
 Next failing test for next feature.
 
+## Test Philosophy
+
+Tests verify **behavior through public interfaces**, not implementation details.
+
+- The internal code can change completely — the tests should not break unless behavior changed.
+- A good test reads like a specification: `"user can checkout with valid cart"`, not `"CartService.processPayment is called once"`.
+- **Warning sign:** your test breaks when you refactor, but the behavior is unchanged. You were testing implementation.
+
+| Good test | Bad test |
+|-----------|----------|
+| `"user with valid cart can complete checkout"` | `"PaymentGateway.charge() called with correct args"` |
+| Calls public API, asserts on observable result | Asserts on internal calls, mock invocation counts |
+| Survives refactoring | Breaks on every internal rename |
+
+If a test is tightly coupled to *how* something works rather than *what* it does, it is not a test — it is a liability.
+
 ## Good Tests
 
 | Quality | Good | Bad |
@@ -268,6 +333,8 @@ Tests-first force edge case discovery before implementing. Tests-after verify yo
 | "TDD will slow me down" | TDD faster than debugging. Pragmatic = test-first. |
 | "Manual test faster" | Manual doesn't prove edge cases. You'll re-test every change. |
 | "Existing code has no tests" | You're improving it. Add tests for existing code. |
+| "I'll write all tests first, then implement" | That's horizontal slicing — not TDD. One test → one impl → repeat. |
+| "My refactor broke tests but behavior is fine" | You were testing implementation, not behavior. Rewrite the tests. |
 
 ## Red Flags - STOP and Start Over
 
@@ -284,6 +351,8 @@ Tests-first force edge case discovery before implementing. Tests-after verify yo
 - "Already spent X hours, deleting is wasteful"
 - "TDD is dogmatic, I'm being pragmatic"
 - "This is different because..."
+- Writing all tests before any implementation (horizontal slicing)
+- Test breaks on refactor but behavior is unchanged (testing implementation)
 
 **All of these mean: Delete code. Start over with TDD.**
 

@@ -13,6 +13,8 @@ Assume the executor is a skilled developer but has **zero context** about the co
 
 **Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
 
+**Domain awareness:** Read `CONTEXT.md` (domain glossary) if it exists — use its vocabulary in task names, descriptions, and acceptance criteria. Check `docs/adr/` for decisions in the area you're planning; don't re-litigate them.
+
 **Context:** If working in an isolated worktree, it should have been created via the `using-git-worktrees` skill at execution time.
 
 **Save plans to:**
@@ -31,9 +33,13 @@ This is the "table of contents" that lets anyone see the full picture at a glanc
 ```markdown
 ## Macro Plan
 
-1. **T1: [Short name]** — [One-line goal] → `task-01-<kebab-name>.md` | **Prereq:** None | **Parallel with:** None
-2. **T2: [Short name]** — [One-line goal] → `task-02-<kebab-name>.md` | **Prereq:** T1 | **Parallel with:** T3
-3. **T3: [Short name]** — [One-line goal] → `task-03-<kebab-name>.md` | **Prereq:** T1 | **Parallel with:** T2
+| # | Name | Goal | File | Prereq | Parallel with | Type |
+|---|------|------|------|--------|---------------|------|
+| T1 | [Short name] | [One-line goal] | `task-01-<kebab-name>.md` | None | None | AFK |
+| T2 | [Short name] | [One-line goal] | `task-02-<kebab-name>.md` | T1 | T3 | AFK |
+| T3 | [Short name] | [One-line goal] | `task-03-<kebab-name>.md` | T1 | T2 | HITL |
+
+**Type legend:** **AFK** = agent can implement and merge without human interaction. **HITL** = requires human decision, review, or external access.
 
 ## Required Skills
 
@@ -50,6 +56,22 @@ Rules for the Macro Plan:
 - Each subtask gets its own file: `task-NN-<short-kebab-name>.md`
 - A subagent reading only the Macro Plan must understand what gets built and in what order.
 - **Parallel with:** Tasks that have no shared files or prerequisites and can be executed simultaneously by different subagents. If blank, the task is sequential.
+- **Type:** Every subtask must be tagged **AFK** or **HITL** (see below). Prefer AFK over HITL — design tasks so a human only needs to intervene when truly necessary.
+- **Vertical slices:** Each subtask must be a tracer bullet that cuts end-to-end through ALL relevant layers (schema → API → UI → tests), not a horizontal layer. A completed slice is independently demonstrable. Prefer many thin slices over few thick ones. **Anti-pattern:** "T1: design full schema. T2: implement all endpoints. T3: build all screens."
+
+### HITL vs AFK classification
+
+Every subtask must be tagged in the Macro Plan table and in its own task file header.
+
+| Tag | Meaning | Examples |
+|-----|---------|---------|
+| **AFK** | Agent implements and merges without human interaction | Write a function, add a route, write tests, update config |
+| **HITL** | Requires human decision, review, or external access | Architecture decision, design review, manual QA, secret rotation, external service setup |
+
+Rules:
+- Default to **AFK**. Only use **HITL** when the task genuinely cannot proceed without a human.
+- HITL tasks are checkpoints, not excuses to pause unnecessarily.
+- A task that is AFK for implementation but HITL for final review should be split: one AFK implementation task, one HITL review task.
 
 ---
 
@@ -148,6 +170,8 @@ Each subtask lives in its own file (`task-NN-<kebab-name>.md`). This keeps tasks
 
 **Goal:** [One sentence: what this task produces when done]
 
+**Type:** AFK | HITL
+
 **Files:**
 - Create: `exact/path/to/file.py`
 - Modify: `exact/path/to/existing.py:123-145`
@@ -165,9 +189,14 @@ Each subtask lives in its own file (`task-NN-<kebab-name>.md`). This keeps tasks
 - `docs/superpowers/mocks/index.html#<section-id>` — the mock section this task must replicate.
 - If no mock exists or task is not UI-related, write: "None."
 
-**Prerequisites (if any): [Only list direct prerequisites — things that MUST exist before this task starts. If none, write "None."]
+**Blocked by:** [List task IDs that must be complete before this task can start, e.g. "T1, T2". If none, write "None — can start immediately."] 
 
 **Context for the executor:** [2–3 sentences explaining WHY this task exists and how it fits into the bigger picture. The executor has not read the rest of the plan.]
+
+## Acceptance criteria
+- [ ] [Specific, verifiable outcome — e.g., "GET /users returns 200 with a list of users"]
+- [ ] [Another measurable criterion — e.g., "Unit tests cover happy path and error case"]
+- [ ] [End-to-end slice criterion — e.g., "Feature is demonstrable without completing any other task"]
 
 **Steps (TDD cycle):**
 
@@ -284,8 +313,12 @@ Skim each section/requirement in the spec. Can you point to a subtask that imple
 5. **If the task involves UI/frontend:** Does it have a `**Visual Reference:**` field pointing to the correct section in `docs/superpowers/mocks/index.html`?
 6. Does the task have a `**Definition of Done**` field?
 7. Does the task have a `**Task Type**` field?
+8. Does the task have a `**Type:**` field tagged as AFK or HITL?
+9. Does the task have a `**Blocked by:**` field listing its dependencies (or explicitly stating "None — can start immediately")?
+10. Does the task have an `## Acceptance criteria` section with at least one checkbox?
+11. Does the Macro Plan table include the **Type** column for every task?
 
-**If a task file lacks skill annotations, visual references, Definition of Done, or Task Type, fix them.** The executor relies on these annotations.
+**If a task file lacks any of these fields, fix them.** The executor relies on these annotations.
 
 ### 6.3 TDD Compliance Scan
 **For every task file that writes or modifies code:**
@@ -313,6 +346,8 @@ Do the types, method signatures, and property names you used in later task files
 
 ### 6.8 Dependency Check
 - Does every task correctly list its prerequisites?
+- Does every task have a `**Blocked by:**` field that matches the Macro Plan's Prereq column?
+- Are tasks ordered so that blockers come before the tasks that depend on them?
 - Are `**Parallel with:**` assignments accurate (no hidden file conflicts)?
 - Is the execution order logical? Could parallel tasks start earlier?
 

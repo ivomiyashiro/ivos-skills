@@ -9,17 +9,19 @@ description: Use when encountering any bug, test failure, or unexpected behavior
 
 Random fixes waste time and create new bugs. Quick patches mask underlying issues.
 
-**Core principle:** ALWAYS find root cause before attempting fixes. Symptom fixes are failure.
+**Core principle:** ALWAYS build a feedback loop before attempting fixes. Without a loop, you are guessing.
 
 **Violating the letter of this process is violating the spirit of debugging.**
+
+**Domain awareness:** Read `CONTEXT.md` (domain glossary) if it exists — use its vocabulary to understand the modules and concepts involved in the bug.
 
 ## The Iron Law
 
 ```
-NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST
+NO FIXES WITHOUT A FEEDBACK LOOP FIRST
 ```
 
-If you haven't completed Phase 1, you cannot propose fixes.
+If you haven't built a loop that reproduces the failure, you cannot propose fixes.
 
 ## When to Use
 
@@ -43,9 +45,87 @@ Use for ANY technical issue:
 - You're in a hurry (rushing guarantees rework)
 - Manager wants it fixed NOW (systematic is faster than thrashing)
 
-## The Four Phases
+## The Five Phases
 
 You MUST complete each phase before proceeding to the next.
+
+---
+
+### Phase 0: Build a Feedback Loop (THE CORE SKILL)
+
+**This is the most important phase. Everything else is secondary.**
+
+A feedback loop is a repeatable, automated sequence that:
+1. Triggers the bug
+2. Signals clearly whether it reproduced (pass/fail, not "didn't crash")
+3. Runs fast enough that you can iterate
+
+**Without a loop, every hypothesis test is manual, slow, and unreliable.**
+
+#### The 10 Loop Forms (in order of preference)
+
+Choose the highest one you can build given your access to the system:
+
+1. **Failing test at the seam that touches the bug** — unit or integration test that asserts the exact bad behavior. Fastest iteration, most deterministic. Use the `test-driven-development` skill.
+
+2. **Curl / HTTP script against a running dev server** — a shell script that hits the endpoint and asserts the response (status code, body field, header). Commit it; it becomes regression coverage.
+
+3. **CLI invocation with a fixture input, diff stdout against a known snapshot** — run the binary with a fixed input file, capture output, compare to expected. `diff <(./bin args < fixture.txt) expected.txt`
+
+4. **Headless browser script (Playwright / Puppeteer)** — when the bug is browser-side and cannot be isolated to an API. Record the minimal click sequence, assert on DOM state or network response.
+
+5. **Replay a captured trace** — save a real HTTP request to disk (HAR, raw curl command, recorded fixture), replay it in the loop. Decouples you from needing the live environment.
+
+6. **Throwaway harness — minimal subset of the system** — copy only the files that touch the bug path into a scratch directory. Remove all unrelated dependencies until you have the smallest program that reproduces.
+
+7. **Property / fuzz loop** — when the input space is large, generate 1000 random inputs and search for failure. `for i in $(seq 1000); do ./gen_input | ./bin || break; done`
+
+8. **Bisection harness** — `git bisect run ./your_loop_script`. Lets git binary-search the commit that introduced the bug. The loop script must exit 0 (good) or non-zero (bad).
+
+9. **Differential loop** — run old version and new version against the same input, diff their outputs. Any divergence is a candidate for the bug.
+
+10. **HITL bash script (last resort)** — if a human must click something, structure it exactly like the other loops: script prints "now do X", waits for Enter, then asserts the observable outcome. Still gives you a repeatable record of steps.
+
+#### Treat the Loop as a Product — Iterate on It
+
+After getting a loop that reproduces, ask:
+
+- **Can I make it faster?** A 2-second loop enables 10x more hypothesis tests per hour than a 20-second loop.
+- **Can I make the signal sharper?** Asserting on the exact symptom (`assert response.status == 401`) is better than "it didn't crash". Vague signals mask partial fixes.
+- **Can I make it more deterministic?** Pin time (`freezegun`, `vi.setSystemTime`), seed the RNG, isolate the filesystem (`tmpdir`), freeze network calls (`msw`, `httpretty`). A deterministic 2-second loop beats a flaky 30-second loop every time.
+
+#### Non-Deterministic Bugs
+
+If the bug doesn't reproduce every run, **the goal is not a clean repro — the goal is to raise the reproduction rate**.
+
+- Loop 100x: `for i in $(seq 100); do ./loop_script; done`
+- Parallelize: `xargs -P 8 -I{} ./loop_script <<< "$(seq 100)"`
+- Add stress: increase load, add concurrent workers, reduce sleep intervals
+- Inject sleeps at suspected race points to widen the window
+- Track reproduction rate: "1 in 100" → after adding stress → "15 in 100" is signal
+
+Once you can reliably trigger it (even 1 in 10), the loop is usable.
+
+#### When You Genuinely Cannot Build a Loop
+
+**Stop. Say so explicitly.** Do not move to hypotheses.
+
+State what you attempted:
+```
+Attempted loops:
+- Failing test: blocked — cannot import the module in isolation due to [reason]
+- Curl script: blocked — bug only appears under authenticated session with specific account state
+- Replay trace: blocked — no HAR or log dump available
+```
+
+Then ask the user for one of:
+- **(a) Access to the environment** where the bug reproduces
+- **(b) A captured artifact** — HAR export, full log dump, screen recording with timestamps, database snapshot
+- **(c) Permission to instrument production temporarily** — add structured logging, feature-flag a debug mode, enable verbose tracing for a single user
+
+**Do not proceed to Phase 1 without a loop unless the user explicitly accepts the risk.**
+
+---
 
 ### Phase 1: Root Cause Investigation
 
@@ -58,10 +138,10 @@ You MUST complete each phase before proceeding to the next.
    - Note line numbers, file paths, error codes
 
 2. **Reproduce Consistently**
-   - Can you trigger it reliably?
+   - Can you trigger it reliably via your loop?
    - What are the exact steps?
    - Does it happen every time?
-   - If not reproducible → gather more data, don't guess
+   - If not reproducible → raise reproduction rate (see Phase 0), don't guess
 
 3. **Check Recent Changes**
    - What changed that could cause this?
@@ -119,6 +199,8 @@ You MUST complete each phase before proceeding to the next.
    - Keep tracing up until you find the source
    - Fix at source, not at symptom
 
+---
+
 ### Phase 2: Pattern Analysis
 
 **Find the pattern before fixing:**
@@ -142,41 +224,56 @@ You MUST complete each phase before proceeding to the next.
    - What settings, config, environment?
    - What assumptions does it make?
 
-### Phase 3: Hypothesis and Testing
+---
 
-**Scientific method:**
+### Phase 3: Ranked Falsifiable Hypotheses
 
-1. **Form Single Hypothesis**
-   - State clearly: "I think X is the root cause because Y"
-   - Write it down
-   - Be specific, not vague
+**Before testing anything, generate 3–5 hypotheses and rank them.**
 
-2. **Test Minimally**
-   - Make the SMALLEST possible change to test hypothesis
-   - One variable at a time
-   - Don't fix multiple things at once
+#### Requirements for each hypothesis
 
-3. **Verify Before Continuing**
-   - Did it work? Yes → Phase 4
-   - Didn't work? Form NEW hypothesis
-   - DON'T add more fixes on top
+Every hypothesis must be falsifiable — you must be able to state a prediction:
 
-4. **When You Don't Know**
-   - Say "I don't understand X"
-   - Don't pretend to know
-   - Ask for help
-   - Research more
+> "If X is the cause, then changing Y will make the bug disappear / changing Z will make it worse."
+
+If you cannot formulate the prediction, the hypothesis is intuition, not a hypothesis. Discard it or refine it until it is testable.
+
+#### Show the ranked list to the user before testing
+
+The user may have context that re-ranks the list instantly — saving you from testing low-probability hypotheses first. Present it as:
+
+```
+Ranked hypotheses (most → least likely):
+1. [Hypothesis] — Prediction: [what changes if true]
+2. [Hypothesis] — Prediction: [what changes if true]
+3. [Hypothesis] — Prediction: [what changes if true]
+(+ 1-2 more if applicable)
+```
+
+#### Testing protocol
+
+- Test **one hypothesis at a time** against the loop
+- Make the **smallest possible change** that discriminates
+- Did loop pass → hypothesis confirmed → move to Phase 4
+- Did loop fail → hypothesis rejected → test next in ranked order
+- **Never stack changes** across hypothesis tests
+
+#### When you don't know
+
+- Say "I don't understand X"
+- Don't pretend to know
+- Research more, ask the user, or return to Phase 0 to improve the loop signal
+
+---
 
 ### Phase 4: Implementation
 
 **Fix the root cause, not the symptom:**
 
-1. **Create Failing Test Case**
-   - Simplest possible reproduction
-   - Automated test if possible
-   - One-off test script if no framework
-   - MUST have before fixing
-   - Use the `test-driven-development` skill for writing proper failing tests
+1. **Lock in the Failing Loop**
+   - The loop from Phase 0 now serves as your regression test
+   - It must be failing before you write any fix code
+   - Use the `test-driven-development` skill if converting to a permanent test
 
 2. **Implement Single Fix**
    - Address the root cause identified
@@ -185,7 +282,7 @@ You MUST complete each phase before proceeding to the next.
    - No bundled refactoring
 
 3. **Verify Fix**
-   - Test passes now?
+   - Loop passes now?
    - No other tests broken?
    - Issue actually resolved?
 
@@ -212,7 +309,9 @@ You MUST complete each phase before proceeding to the next.
 
    This is NOT a failed hypothesis - this is a wrong architecture.
 
-## Red Flags - STOP and Follow Process
+---
+
+## Red Flags — STOP and Follow Process
 
 If you catch yourself thinking:
 - "Quick fix for now, investigate later"
@@ -226,12 +325,13 @@ If you catch yourself thinking:
 - Proposing solutions before tracing data flow
 - **"One more fix attempt" (when already tried 2+)**
 - **Each fix reveals new problem in different place**
+- **Moving to hypotheses without a loop**
 
-**ALL of these mean: STOP. Return to Phase 1.**
+**ALL of these mean: STOP. Return to Phase 0.**
 
 **If 3+ fixes failed:** Question the architecture (see Phase 4.5)
 
-## your human partner's Signals You're Doing It Wrong
+## Your Human Partner's Signals You're Doing It Wrong
 
 **Watch for these redirections:**
 - "Is that not happening?" - You assumed without verifying
@@ -240,7 +340,7 @@ If you catch yourself thinking:
 - "Ultrathink this" - Question fundamentals, not just symptoms
 - "We're stuck?" (frustrated) - Your approach isn't working
 
-**When you see these:** STOP. Return to Phase 1.
+**When you see these:** STOP. Return to Phase 0.
 
 ## Common Rationalizations
 
@@ -249,6 +349,7 @@ If you catch yourself thinking:
 | "Issue is simple, don't need process" | Simple issues have root causes too. Process is fast for simple bugs. |
 | "Emergency, no time for process" | Systematic debugging is FASTER than guess-and-check thrashing. |
 | "Just try this first, then investigate" | First fix sets the pattern. Do it right from the start. |
+| "I can't build a loop, so I'll hypothesize" | No loop = no signal. Hypotheses without a loop are guesses. |
 | "I'll write test after confirming fix works" | Untested fixes don't stick. Test first proves it. |
 | "Multiple fixes at once saves time" | Can't isolate what worked. Causes new bugs. |
 | "Reference too long, I'll adapt the pattern" | Partial understanding guarantees bugs. Read it completely. |
@@ -259,10 +360,11 @@ If you catch yourself thinking:
 
 | Phase | Key Activities | Success Criteria |
 |-------|---------------|------------------|
-| **1. Root Cause** | Read errors, reproduce, check changes, gather evidence | Understand WHAT and WHY |
+| **0. Feedback Loop** | Build fastest reproducible loop, iterate on speed/signal/determinism | Loop fails on demand, runs in seconds |
+| **1. Root Cause** | Read errors, check changes, gather evidence, trace data flow | Understand WHAT and WHY |
 | **2. Pattern** | Find working examples, compare | Identify differences |
-| **3. Hypothesis** | Form theory, test minimally | Confirmed or new hypothesis |
-| **4. Implementation** | Create test, fix, verify | Bug resolved, tests pass |
+| **3. Hypotheses** | Generate 3-5 ranked falsifiable hypotheses, show user | One confirmed hypothesis |
+| **4. Implementation** | Use loop as test, fix, verify | Bug resolved, loop passes |
 
 ## When Process Reveals "No Root Cause"
 
