@@ -48,7 +48,7 @@ Skills use Claude Code tool names. Adapt to your platform:
 
 **Before starting complex work, discover relevant skills:**
 
-1. **Load `superpowers:find-skills`** — searches the open skills ecosystem for domain-specific guidance.
+1. **Load `find-skills`** — searches the open skills ecosystem for domain-specific guidance.
 2. **Search by tech stack** — e.g., "react", "flutter", "hono", "frontend", "testing".
 3. **Review results** — prefer skills with 1K+ installs from reputable sources.
 4. **Load relevant skills** — use your platform's skill tool to load them before acting.

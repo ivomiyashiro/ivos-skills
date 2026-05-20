@@ -17,7 +17,7 @@ Guide completion of development work by presenting clear options and handling ch
 
 ### Step 1: Verify Tests
 
-**Before presenting options, invoke `superpowers:verification-before-completion` and verify tests pass:**
+**Before presenting options, invoke `verification-before-completion` and verify tests pass:**
 
 ```bash
 # Run project's test suite

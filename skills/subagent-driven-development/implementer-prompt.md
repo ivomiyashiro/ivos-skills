@@ -17,9 +17,9 @@ Task tool (general-purpose):
     This task requires loading the following skills BEFORE starting work:
 
     [List every skill from the task file's **Skills:** field, e.g.:
-    - superpowers:test-driven-development
-    - superpowers:react-best-practices
-    - superpowers:systematic-debugging
+    - test-driven-development
+    - react-best-practices
+    - systematic-debugging
     ]
 
     **You MUST load these skills using your platform's skill tool before touching any code.**

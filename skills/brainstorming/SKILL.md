@@ -88,7 +88,7 @@ digraph brainstorming {
 
 **Exploring approaches:**
 
-1. **Discover domain skills first:** Before proposing approaches, load `superpowers:find-skills` and search for skills relevant to the feature domain (e.g., "react", "flutter", "hono", "frontend design", "api"). Review results and factor them into approach recommendations. If a high-quality skill exists for the domain, the approach should align with its conventions.
+1. **Discover domain skills first:** Before proposing approaches, load `find-skills` and search for skills relevant to the feature domain (e.g., "react", "flutter", "hono", "frontend design", "api"). Review results and factor them into approach recommendations. If a high-quality skill exists for the domain, the approach should align with its conventions.
 2. **Propose 2-3 different approaches with trade-offs**, informed by discovered skills.
 3. **Present options conversationally** with your recommendation and reasoning.
 4. **Lead with your recommended option** and explain why, including how it leverages any discovered skills.
@@ -124,13 +124,43 @@ digraph brainstorming {
 - Use elements-of-style:writing-clearly-and-concisely skill if available
 - Commit the design document to git
 
+## Spec Template
+
+Every spec document (`docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`) MUST include these sections:
+
+### 1. Problem / Opportunity
+One paragraph: what are we solving and why does it matter?
+
+### 2. Functional Requirements (FRs)
+A numbered list of behaviors the system MUST exhibit. Each requirement must be:
+- **Atomic**: one behavior per item
+- **Measurable**: you can write a test that proves it
+- **Independent**: doesn't depend on another requirement to make sense
+
+### 3. Acceptance Criteria (ACs)
+For each FR, define Given/When/Then conditions for completion.
+
+### 4. Constraints & Non-Functional Requirements
+Performance, security, scalability, accessibility, compatibility.
+
+### 5. Out of Scope
+Explicitly list what this spec does NOT cover.
+
+### 6. Dependencies
+External services, libraries, or internal systems.
+
+### 7. Risks & Mitigations
+What could go wrong and how to handle it.
+
 **Spec Self-Review:**
 After writing the spec document, look at it with fresh eyes:
 
 1. **Placeholder scan:** Any "TBD", "TODO", incomplete sections, or vague requirements? Fix them.
-2. **Internal consistency:** Do any sections contradict each other? Does the architecture match the feature descriptions?
-3. **Scope check:** Is this focused enough for a single implementation plan, or does it need decomposition?
-4. **Ambiguity check:** Could any requirement be interpreted two different ways? If so, pick one and make it explicit.
+2. **Spec Template compliance:** Does the spec have all mandatory sections (Problem, FRs, ACs, Constraints, Out of Scope)?
+3. **Internal consistency:** Do any sections contradict each other? Does the architecture match the feature descriptions?
+4. **Scope check:** Is this focused enough for a single implementation plan, or does it need decomposition?
+5. **Ambiguity check:** Could any requirement be interpreted two different ways? If so, pick one and make it explicit.
+6. **Acceptance Criteria check:** Are the ACs measurable and unambiguous?
 
 Fix any issues inline. No need to re-review — just fix and move on.
 

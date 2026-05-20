@@ -13,7 +13,7 @@ Assume the executor is a skilled developer but has **zero context** about the co
 
 **Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
 
-**Context:** If working in an isolated worktree, it should have been created via the `superpowers:using-git-worktrees` skill at execution time.
+**Context:** If working in an isolated worktree, it should have been created via the `using-git-worktrees` skill at execution time.
 
 **Save plans to:**
 - **Macro Plan:** `docs/superpowers/plans/YYYY-MM-DD-<feature-name>/plan.md`
@@ -31,18 +31,17 @@ This is the "table of contents" that lets anyone see the full picture at a glanc
 ```markdown
 ## Macro Plan
 
-1. **T1: [Short name]** — [One-line goal] → `task-01-<kebab-name>.md`
-2. **T2: [Short name]** — [One-line goal] → `task-02-<kebab-name>.md`
-3. **T3: [Short name]** — [One-line goal] → `task-03-<kebab-name>.md`
-...
+1. **T1: [Short name]** — [One-line goal] → `task-01-<kebab-name>.md` | **Prereq:** None | **Parallel with:** None
+2. **T2: [Short name]** — [One-line goal] → `task-02-<kebab-name>.md` | **Prereq:** T1 | **Parallel with:** T3
+3. **T3: [Short name]** — [One-line goal] → `task-03-<kebab-name>.md` | **Prereq:** T1 | **Parallel with:** T2
 
 ## Required Skills
 
 [Discovered via `find-skills` during planning. List every skill the executor must load before starting:]
 
-- `superpowers:test-driven-development` — mandatory for all code subtasks
-- `superpowers:<domain-skill-1>` — e.g., `react-best-practices`, `flutter-add-widget-test`, `hono-api-best-practices`
-- `superpowers:<domain-skill-2>` — ...
+- `test-driven-development` — mandatory for all code subtasks
+- `<domain-skill-1>` — e.g., `react-best-practices`, `flutter-add-widget-test`, `hono-api-best-practices`
+- `<domain-skill-2>` — ...
 ```
 
 Rules for the Macro Plan:
@@ -50,6 +49,7 @@ Rules for the Macro Plan:
 - Each subtask is a **single, indivisible unit of work** (e.g., one function, one test file, one config change).
 - Each subtask gets its own file: `task-NN-<short-kebab-name>.md`
 - A subagent reading only the Macro Plan must understand what gets built and in what order.
+- **Parallel with:** Tasks that have no shared files or prerequisites and can be executed simultaneously by different subagents. If blank, the task is sequential.
 
 ---
 
@@ -68,7 +68,7 @@ Map out which files will be created or modified and what each one is responsible
 
 **Before writing subtask details, discover the optimal skill set for this plan:**
 
-1. **Load `superpowers:find-skills`** using the `Skill` tool.
+1. **Load `find-skills`** using the `Skill` tool.
 2. **Run discovery searches** based on the plan's domain, tech stack, and tasks. Examples:
    - React/Next.js UI → search "react", "nextjs", "frontend design"
    - Flutter mobile app → search "flutter", "widget test", "responsive layout"
@@ -82,7 +82,7 @@ Map out which files will be created or modified and what each one is responsible
 
 The executor (`executing-plans`) will also run `find-skills`, but if the **plan author** (you) annotates skills during planning:
 - The executor doesn't need to guess which skills apply to which subtask.
-- Subagents receive explicit instructions: *"Load `superpowers:react-best-practices` before starting this subtask."*
+- Subagents receive explicit instructions: *"Load `react-best-practices` before starting this subtask."*
 - The plan becomes self-documenting about its own tooling requirements.
 
 ### Skill annotation in task files
@@ -97,30 +97,47 @@ Add a `**Skills:**` field to every task file that needs domain-specific guidance
 **Files:** ...
 
 **Skills:**
-- `superpowers:react-best-practices` — for component structure and memoization rules
-- `superpowers:test-driven-development` — for TDD cycle enforcement
+- `react-best-practices` — for component structure and memoization rules
+- `test-driven-development` — for TDD cycle enforcement
 
 **Prerequisites:** ...
 ```
 
 If no domain-specific skills apply, write:
 ```markdown
-**Skills:** None (only `superpowers:test-driven-development` is loaded implicitly)
+**Skills:** None (only `test-driven-development` is loaded implicitly)
 ```
 
 ---
 
 ## 4. TDD by Default
 
-**Every subtask that writes or modifies code MUST follow the TDD cycle: red → green → refactor.**
+**Every task that writes or modifies application/business logic MUST follow TDD: red → green → refactor.**
 
-This is non-negotiable. The `test-driven-development` skill is always loaded implicitly when this plan is executed. If a subtask does not follow TDD, it is a plan bug.
+The `test-driven-development` skill is always loaded implicitly when this plan is executed. If a business-logic task does not follow TDD, it is a plan bug.
 
-### What this means in practice:
-- **Red**: The first step of any code subtask is a failing test that defines the expected behavior.
-- **Green**: The next step is the minimal implementation that makes the test pass.
-- **Refactor**: If the subtask has more than one test or the code needs cleanup, include a refactor step.
-- **No exceptions**: Even "infrastructure" subtasks (config, wiring, adapters) get a test first. If you genuinely cannot write a meaningful test for a subtask, that subtask is too vague — split it until you can.
+### Task Classification
+
+| Task Type | TDD Required? | Examples |
+|-----------|---------------|----------|
+| **Business Logic** | ✅ Mandatory | New functions, models, services, algorithms |
+| **Tests** | ✅ Mandatory | Unit tests, integration tests, e2e tests |
+| **Configuration** | ❌ Optional | Update `package.json`, add env vars, tweak CI config |
+| **Documentation** | ❌ Optional | Update README, add code comments, write guides |
+| **Wiring / Plumbing** | ❌ Optional but encouraged | Connect adapter to service, register route, import module |
+| **Refactor (no behavior change)** | ❌ Optional | Rename variables, extract function, reorder imports |
+
+### Rules for Non-TDD Tasks
+
+Even when TDD is optional:
+1. The task must still have a **verification step** (e.g., "Run the app and confirm it starts", "Generate docs and check formatting").
+2. The task must still have a **Definition of Done** checklist.
+3. If a non-TDD task unexpectedly requires code changes, those code changes MUST follow TDD.
+
+### What remains forbidden
+- "Implement X" without any form of verification (test or manual).
+- "Add tests later" or "TODO: tests".
+- Writing production code for business logic before a failing test.
 
 ### Task File Template (TDD-first + skill-annotated)
 
@@ -136,11 +153,13 @@ Each subtask lives in its own file (`task-NN-<kebab-name>.md`). This keeps tasks
 - Modify: `exact/path/to/existing.py:123-145`
 - Test: `tests/exact/path/to/test.py`
 
+**Task Type:** Business Logic | Configuration | Documentation | Wiring | Refactor
+
 **Skills:**
-- List every `superpowers:<skill-name>` the executor must load before starting this task.
+- List every `<skill-name>` the executor must load before starting this task.
 - Include domain-specific skills discovered via `find-skills` (e.g., `react-best-practices`, `flutter-add-widget-test`).
-- Always include `superpowers:test-driven-development` if this task writes/modifies code.
-- If none beyond implicit TDD, write: `superpowers:test-driven-development` (implicit)
+- Always include `test-driven-development` if this task writes/modifies code.
+- If none beyond implicit TDD, write: `test-driven-development` (implicit)
 
 **Visual Reference (if frontend/UI task):**
 - `docs/superpowers/mocks/index.html#<section-id>` — the mock section this task must replicate.
@@ -152,7 +171,9 @@ Each subtask lives in its own file (`task-NN-<kebab-name>.md`). This keeps tasks
 
 **Steps (TDD cycle):**
 
-- [ ] **Step 1: RED — Write the failing test**
+- [ ] **Step 1: RED — Write the failing test (CONTRACT)**
+
+The test is a **behavioral contract**. It must be literal, executable code that defines exactly what the task must achieve.
 
 ```python
 def test_specific_behavior():
@@ -160,40 +181,43 @@ def test_specific_behavior():
     assert result == expected
 ```
 
-- [ ] **Step 2: Verify RED — Run and confirm it fails**
-
 Run: `pytest tests/path/test.py::test_name -v`
 Expected: FAIL with "function not defined"
 
-- [ ] **Step 3: GREEN — Write minimal implementation**
+- [ ] **Step 2: GREEN — Implement to pass the test (STRATEGY)**
 
-```python
-def function(input):
-    return expected
+Describe the **approach and constraints**, not the exact code. The implementer is a skilled developer who will find the best way to satisfy the contract.
+
+Requirements:
+- Must handle [edge case X]
+- Should follow [pattern Y] per loaded skill conventions
+- Must pass the RED test above
+
+**Do NOT include:** Exact implementation code, specific variable names, or algorithmic details. Those are discovered during execution.
+
+- [ ] **Step 3: REFACTOR (if needed)**
+
+[Optional. Only include if there is a specific cleanup requirement or pattern to apply.]
+
+- [ ] **Step 4: Verify and commit**
+
+Run all tests. Expected: PASS.
+Commit with a descriptive message.
 ```
 
-- [ ] **Step 4: Verify GREEN — Run and confirm it passes**
-
-Run: `pytest tests/path/test.py::test_name -v`
-Expected: PASS
-
-- [ ] **Step 5: REFACTOR (if needed)**
-
-[Only if the code needs cleanup, better naming, or extraction. Include exact refactored code.]
-
-- [ ] **Step 6: Commit**
-
-```bash
-git add tests/path/test.py src/path/file.py
-git commit -m "feat: add specific feature"
-```
-```
+**Definition of Done:**
+- [ ] All RED tests pass
+- [ ] Code follows conventions of loaded skills
+- [ ] No regressions in existing tests
+- [ ] Committed with descriptive message
+- [ ] (If applicable) Documentation updated
 
 ### What "TDD by default" forbids:
 - Subtasks that say "implement X" without a preceding failing test.
 - Subtasks that say "write tests for X" after X is already implemented.
 - Subtasks that say "add tests later" or "TODO: tests".
-- Steps that show implementation code before any test code.
+- Steps that prescribe exact implementation code before the test is written.
+- Steps that include exact implementation code in the GREEN phase. Pseudocode and constraints only.
 
 ### Atomicity Rules
 
@@ -208,6 +232,8 @@ git commit -m "feat: add specific feature"
 - If a subtask modifies a file that was created earlier, it must include the full file path and describe what already exists.
 - Never say "same as Task 3" or "similar to above." Repeat the code.
 - Never say "use the helper from T1" without showing what that helper is.
+- The **test code (RED)** must be literal and complete — it is the contract.
+- The **implementation approach (GREEN)** must describe constraints and requirements, not exact production code.
 
 ---
 
@@ -245,28 +271,36 @@ After writing the complete plan, run this checklist on yourself:
 
 ### 6.1 Spec Coverage
 Skim each section/requirement in the spec. Can you point to a subtask that implements it? List any gaps and add subtasks.
+- Does the spec have all mandatory sections from the Spec Template (Problem, FRs, ACs, Constraints, Out of Scope)?
+- Is every Functional Requirement mapped to at least one task?
+- Are the Acceptance Criteria measurable and unambiguous?
 
 ### 6.2 Skill and Visual Reference Annotation Check
 **For every task file:**
 1. Does it have a `**Skills:**` field?
 2. Are the listed skills relevant to the task's domain?
 3. Did you discover these skills via `find-skills` during planning, or are they just generic defaults?
-4. Are the skill names exact (e.g., `superpowers:react-best-practices`, not just "React skill")?
+4. Are the skill names exact (e.g., `react-best-practices`, not just "React skill")?
 5. **If the task involves UI/frontend:** Does it have a `**Visual Reference:**` field pointing to the correct section in `docs/superpowers/mocks/index.html`?
+6. Does the task have a `**Definition of Done**` field?
+7. Does the task have a `**Task Type**` field?
 
-**If a task file lacks skill annotations, visual references, or has incorrect ones, fix them.** The executor relies on these annotations to load the right skills and replicate the approved design.
+**If a task file lacks skill annotations, visual references, Definition of Done, or Task Type, fix them.** The executor relies on these annotations.
 
 ### 6.3 TDD Compliance Scan
 **For every task file that writes or modifies code:**
 1. Does the task start with a failing test (RED step)?
-2. Does it have a minimal implementation step (GREEN step)?
+2. Does it have a descriptive implementation step (GREEN step)?
 3. Is there any task that implements code before writing a test?
 4. Is there any "write tests for X" that comes AFTER an "implement X"?
+5. Does the GREEN step avoid exact implementation code (approach only)?
 
 **If any task violates TDD, rewrite it.** This is a plan-blocking issue.
 
 ### 6.4 Macro Plan Sanity Check
 Read only the Macro Plan (`plan.md`). Does the full feature make sense? Is the order logical? Are there any tasks that could be parallelized?
+- Can any two tasks with `**Parallel with:**` values be safely executed out of order?
+- Do parallel tasks truly have no file conflicts or shared state?
 
 ### 6.5 Placeholder Scan
 Search your task files for red flags — any of the patterns from the "No Placeholders" section above. Fix them.
@@ -277,7 +311,41 @@ Pick a random task file and read it in isolation (pretend you know nothing about
 ### 6.7 Type Consistency
 Do the types, method signatures, and property names you used in later task files match what you defined in earlier ones? A function called `clearLayers()` in `task-03-*.md` but `clearFullLayers()` in `task-07-*.md` is a bug.
 
+### 6.8 Dependency Check
+- Does every task correctly list its prerequisites?
+- Are `**Parallel with:**` assignments accurate (no hidden file conflicts)?
+- Is the execution order logical? Could parallel tasks start earlier?
+
+### 6.9 Implementation Literalness Check
+**For every task that writes/modifies code:**
+- Does the RED step contain literal, executable test code?
+- Does the GREEN step describe the approach (NOT exact implementation code)?
+- Is there any exact production code in the GREEN phase? If yes, remove it.
+
 If you find issues, fix them inline. No need to re-review — just fix and move on.
+
+---
+
+## Scope Change Protocol
+
+During execution, the implementer or user may discover that the spec or plan needs adjustment. **Do NOT modify the original spec or task files directly.** Instead:
+
+### Discovery during execution
+1. Trivial change (typo, rename): fix inline, mention in commit.
+2. Non-trivial (different approach, new file): STOP, report to controller.
+3. Controller decides: minor fix → continue; major divergence → create `spec-v2.md` or `plan-v2.md`.
+
+### User requests changes mid-implementation
+1. STOP execution. Do not "just add it quickly."
+2. Document the change.
+3. If fits within existing spec: amend spec, update affected task files.
+4. If new scope: create NEW spec and plan for next iteration.
+5. Resume only after user approves updated spec/plan.
+
+### Versioning
+- Specs: `YYYY-MM-DD-<topic>-design.md`, then `YYYY-MM-DD-<topic>-design-v2.md`
+- Plans: `YYYY-MM-DD-<feature>/plan.md`, then `YYYY-MM-DD-<feature>/plan-v2.md`
+- Never overwrite originals. Preserve history.
 
 ---
 
@@ -294,12 +362,12 @@ After saving the plan, offer execution choice:
 **Which approach?"**
 
 **If Subagent-Driven chosen:**
-- **REQUIRED SUB-SKILL:** Use `superpowers:subagent-driven-development`
+- **REQUIRED SUB-SKILL:** Use `subagent-driven-development`
 - Fresh subagent per task + two-stage review
 - **Critical:** The controller MUST read each `task-NN-*.md` file and pass its full contents (including the `**Skills:**` annotations) to the implementer subagent. The subagent does not read the plan directory — it only receives its isolated task file contents. If the Skills list is missing from the prompt, the subagent won't load domain-specific conventions.
 
 **If Inline Execution chosen:**
-- **REQUIRED SUB-SKILL:** Use `superpowers:executing-plans`
+- **REQUIRED SUB-SKILL:** Use `executing-plans`
 - Batch execution with checkpoints for review
 - The executor reads the Macro Plan (`plan.md`) first, then each `task-NN-*.md` file in order.
 - The executor will run `find-skills` as a safety net and enforce TDD automatically.

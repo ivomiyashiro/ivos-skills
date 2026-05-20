@@ -20,24 +20,29 @@ digraph when_to_use {
     "Have implementation plan?" [shape=diamond];
     "Tasks mostly independent?" [shape=diamond];
     "Stay in this session?" [shape=diamond];
-    "subagent-driven-development" [shape=box];
-    "executing-plans" [shape=box];
-    "Manual execution or brainstorm first" [shape=box];
+    "subagent-driven-development" [shape=box style=filled fillcolor="#ccffcc"];
+    "executing-plans" [shape=box style=filled fillcolor="#ccccff"];
+    "brainstorming → writing-plans" [shape=box];
 
     "Have implementation plan?" -> "Tasks mostly independent?" [label="yes"];
-    "Have implementation plan?" -> "Manual execution or brainstorm first" [label="no"];
+    "Have implementation plan?" -> "brainstorming → writing-plans" [label="no"];
     "Tasks mostly independent?" -> "Stay in this session?" [label="yes"];
-    "Tasks mostly independent?" -> "Manual execution or brainstorm first" [label="no - tightly coupled"];
+    "Tasks mostly independent?" -> "executing-plans" [label="no - tightly coupled, execute sequentially"];
     "Stay in this session?" -> "subagent-driven-development" [label="yes"];
     "Stay in this session?" -> "executing-plans" [label="no - parallel session"];
 }
 ```
 
-**vs. Executing Plans (parallel session):**
-- Same session (no context switch)
-- Fresh subagent per task (no context pollution)
-- Two-stage review after each task: spec compliance first, then code quality
-- Faster iteration (no human-in-loop between tasks)
+**This diagram is the unified execution strategy.** It is identical to the one in `executing-plans`. Both skills use the same decision flow.
+
+**vs. Executing Plans:**
+| Aspect | subagent-driven-development | executing-plans |
+|--------|----------------------------|-----------------|
+| Session | Same session | Parallel session or no subagents |
+| Agents | Fresh subagent per task | Inline (you execute) |
+| Review | Two-stage per task (spec → quality) | Checkpoints at your discretion |
+| Speed | Faster iteration, no human-in-loop | Human-in-loop, context preserved |
+| Best for | Independent tasks, subagent support | Tightly coupled tasks, no subagent support |
 
 ## The Process
 
@@ -45,8 +50,8 @@ digraph when_to_use {
 digraph process {
     rankdir=TB;
 
-    "Validate worktree (superpowers:using-git-worktrees)" [shape=box];
-    "Run superpowers:find-skills for domain discovery" [shape=box];
+    "Validate worktree (using-git-worktrees)" [shape=box];
+    "Run find-skills for domain discovery" [shape=box];
     "Read plan.md (Macro Plan), then read each task-NN-*.md file for full text + Skills annotations" [shape=box];
 
     subgraph cluster_per_task {
@@ -66,10 +71,10 @@ digraph process {
 
     "More tasks remain?" [shape=diamond];
     "Dispatch final code reviewer subagent for entire implementation" [shape=box];
-    "Use superpowers:finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
+    "Use finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
 
-    "Validate worktree (superpowers:using-git-worktrees)" -> "Run superpowers:find-skills for domain discovery";
-    "Run superpowers:find-skills for domain discovery" -> "Read plan.md (Macro Plan), then read each task-NN-*.md file for full text + Skills annotations";
+    "Validate worktree (using-git-worktrees)" -> "Run find-skills for domain discovery";
+    "Run find-skills for domain discovery" -> "Read plan.md (Macro Plan), then read each task-NN-*.md file for full text + Skills annotations";
     "Read plan, extract all tasks with full text + Skills annotations, create TodoWrite" -> "Dispatch implementer subagent (./implementer-prompt.md)";
     "Dispatch implementer subagent (./implementer-prompt.md)" -> "Implementer subagent asks questions?";
     "Implementer subagent asks questions?" -> "Answer questions, provide context" [label="yes"];
@@ -87,7 +92,7 @@ digraph process {
     "Mark task complete in TodoWrite" -> "More tasks remain?";
     "More tasks remain?" -> "Dispatch implementer subagent (./implementer-prompt.md)" [label="yes"];
     "More tasks remain?" -> "Dispatch final code reviewer subagent for entire implementation" [label="no"];
-    "Dispatch final code reviewer subagent for entire implementation" -> "Use superpowers:finishing-a-development-branch";
+    "Dispatch final code reviewer subagent for entire implementation" -> "Use finishing-a-development-branch";
 }
 ```
 
@@ -139,8 +144,8 @@ When a task includes `**Visual Reference:**`, the controller MUST include the mo
 ```
 You: I'm using Subagent-Driven Development to execute this plan.
 
-[Validate worktree using superpowers:using-git-worktrees]
-[Run superpowers:find-skills to discover domain-specific skills]
+[Validate worktree using using-git-worktrees]
+[Run find-skills to discover domain-specific skills]
 [Read plan.md once: docs/superpowers/plans/YYYY-MM-DD-feature/plan.md]
 [Read each task-NN-*.md file to extract full text, context, AND **Skills:** annotations]
 [Create TodoWrite with all tasks]
@@ -280,15 +285,15 @@ Done!
 ## Integration
 
 **Required workflow skills:**
-- **superpowers:using-git-worktrees** - Ensures isolated workspace (creates one or verifies existing)
-- **superpowers:writing-plans** - Creates the plan this skill executes (includes TDD-by-default and skill annotations)
-- **superpowers:find-skills** - Discovers domain-specific skills before execution
-- **superpowers:requesting-code-review** - Code review template for reviewer subagents
-- **superpowers:finishing-a-development-branch** - Complete development after all tasks
-- **superpowers:verification-before-completion** - Subagents must verify before claiming DONE
+- **using-git-worktrees** - Ensures isolated workspace (creates one or verifies existing)
+- **writing-plans** - Creates the plan this skill executes (includes TDD-by-default and skill annotations)
+- **find-skills** - Discovers domain-specific skills before execution
+- **requesting-code-review** - Code review template for reviewer subagents
+- **finishing-a-development-branch** - Complete development after all tasks
+- **verification-before-completion** - Subagents must verify before claiming DONE
 
 **Subagents MUST use:**
-- **superpowers:test-driven-development** - TDD is mandatory, not optional, for every task
+- **test-driven-development** - TDD is mandatory, not optional, for every task
 
 **Alternative workflow:**
-- **superpowers:executing-plans** - Use for parallel session instead of same-session execution
+- **executing-plans** - Use for parallel session instead of same-session execution
