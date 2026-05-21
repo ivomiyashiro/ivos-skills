@@ -26,7 +26,7 @@ You MUST create a task for each of these items and complete them in order:
 3. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
 4. **Propose 2-3 approaches** — with trade-offs and your recommendation
 5. **Present design** — in sections scaled to their complexity, get user approval after each section
-6. **Create visual mocks** — if the project involves UI/frontend, generate `docs/superpowers/mocks/index.html` with all screens/components in styled sections. This is a hard gate: the human must approve the mocks before proceeding. Only skip if the user explicitly requests it.
+6. **Create visual mocks** — if the project involves UI/frontend: first ask design preference questions (aesthetic direction, palette, typography, references), then load the `frontend-design` skill, then generate `docs/superpowers/mocks/index.html` with all screens/components in styled sections. This is a hard gate: the human must approve the mocks before proceeding. Only skip if the user explicitly requests it.
 7. **Write design doc** — save to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` and commit
 8. **Spec self-review** — quick inline check for placeholders, contradictions, ambiguity, scope (see below)
 9. **User reviews written spec** — ask user to review the spec file before proceeding
@@ -248,13 +248,15 @@ The visual mock is a single static HTML file (`docs/superpowers/mocks/index.html
 ### Process
 
 1. After the user approves the conceptual design, check: does this project have UI/frontend?
-   - If yes: proceed to create mocks.
+   - If yes: proceed to steps 2–3 below.
    - If no: skip to writing the design doc.
-2. Create `docs/superpowers/mocks/index.html` following the guide in `skills/brainstorming/visual-mocks.md`.
-3. Present the mock to the user:
+2. **Elicit design preferences** — ask the user these questions one at a time before touching any HTML. Full question list in `skills/brainstorming/visual-mocks.md` under "Design Preferences". Do not skip this even if the user already mentioned a color or style in passing — get explicit answers before generating.
+3. **Load the `frontend-design` skill** — required before generating the mock. The mock must follow its aesthetic guidelines (typography, color, motion direction, spatial composition).
+4. Create `docs/superpowers/mocks/index.html` following the guide in `skills/brainstorming/visual-mocks.md`.
+5. Present the mock to the user:
    > "I've created the visual mock for the approved design. Please open `docs/superpowers/mocks/index.html` in your browser and review it. Let me know if any adjustments are needed. We won't start the implementation plan until you confirm the visual looks correct."
-4. If the user requests changes, iterate on the mock file. Never reuse filenames — create `index-v2.html`, `index-v3.html`, etc.
-5. Once approved, proceed to write the design doc and then invoke `writing-plans`.
+6. If the user requests changes, iterate on the mock file. Never reuse filenames — create `index-v2.html`, `index-v3.html`, etc.
+7. Once approved, proceed to write the design doc and then invoke `writing-plans`.
 
 ### Link to detailed guide
 

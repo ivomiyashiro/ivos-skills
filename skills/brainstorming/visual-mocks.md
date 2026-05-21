@@ -2,6 +2,24 @@
 
 Guide for creating static HTML/CSS visual mocks during the brainstorming phase. These mocks are the approved visual contract that implementation tasks will reference.
 
+## Design Preferences
+
+Before generating any HTML, ask the user these questions **one at a time**. Every answer shapes the mock — skipping this produces a generic, low-value result.
+
+| # | Question | What it informs |
+|---|----------|-----------------|
+| 1 | **¿Qué sensación o mood querés que transmita el diseño?** (ej. minimalista y profesional, bold y enérgico, cálido y cercano, editorial, futurista, playful) | Aesthetic direction — the single most load-bearing decision |
+| 2 | **¿Tenés colores de marca o una paleta en mente?** Si no, ¿preferís un tema oscuro, claro o algo intermedio? | Color system and contrast strategy |
+| 3 | **¿Hay alguna app, sitio o diseño que te guste y quieras tomar como referencia?** (puede ser un competidor, una industria diferente, cualquier cosa) | Concrete visual benchmark |
+| 4 | **¿Tenés preferencias de tipografía?** (ej. algo serio y geométrico, humanista y legible, display llamativo, serif clásico) — si no, ¿hay alguna que no quieras? | Font pairing and tone |
+| 5 | **¿Cómo de densa querés la interfaz?** (mucho espacio en blanco y pocas cosas a la vez vs. información compacta y densa) | Layout density and information hierarchy |
+
+**Rules:**
+- Ask them one at a time, not as a batch list.
+- If the user already answered one in passing during brainstorming, skip it and note the answer.
+- Capture all answers before opening any file. Don't start the HTML until you have at least answers to questions 1, 2, and 3.
+- If the user says "whatever you think" or "I trust you": pick a bold, specific direction anyway and state it explicitly before proceeding — don't default to generic neutrals.
+
 ## When to Use
 
 Create visual mocks **after** the user approves the conceptual design and **before** writing the design doc or invoking writing-plans. This applies to any project that involves UI, web frontend, mobile screens, or visual components.
