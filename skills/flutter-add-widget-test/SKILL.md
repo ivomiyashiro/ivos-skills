@@ -44,6 +44,7 @@ Copy the following checklist to track progress when implementing a new widget te
 - [ ] **Step 7: Verify updated state.** Use `expect()` to validate the UI after the interaction.
 - [ ] **Step 8: Run and validate.** Execute `flutter test test/your_test_file_test.dart`.
 - [ ] **Step 9: Feedback Loop.** Review test output -> identify failing matchers -> adjust widget logic or test assertions -> re-run until passing.
+- [ ] **Step 10: Validate Dart Analysis.** Execute `flutter analyze` or `dart analyze` to ensure 0 errors and 0 warnings.
 
 ## Interaction & State Management
 

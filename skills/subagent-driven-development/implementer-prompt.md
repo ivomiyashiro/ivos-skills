@@ -130,10 +130,11 @@ Task tool (general-purpose):
     - Read the output. Confirm 0 failures.
     - Run any lint/type-check commands:
       - For TypeScript: `tsc --noEmit` (or `bun run typecheck` if configured). 0 errors required.
+      - For Flutter/Dart: `flutter analyze` or `dart analyze`. 0 errors required.
       - For JavaScript/Node: ESLint or equivalent. 0 errors required.
     - Only then report your status.
 
-    Never claim "tests pass" without having just run them. Never claim "TypeScript is clean" without showing `tsc --noEmit` output.
+    Never claim "tests pass" without having just run them. Never claim "TypeScript is clean" without showing `tsc --noEmit` output. Never claim "Flutter code is ready" without showing `flutter analyze` output with 0 errors.
 
     ## Report Format
 

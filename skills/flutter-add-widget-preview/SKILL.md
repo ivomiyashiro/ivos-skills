@@ -62,6 +62,7 @@ Follow the appropriate conditional workflow to launch and interact with the Widg
 3. If global state (e.g., static initializers) was modified: Click the global hot restart button at the bottom right.
 4. If only the local widget state needs resetting: Click the individual hot restart button on the specific preview card.
 5. Review errors in the IDE/CLI console -> fix -> repeat.
+6. Run `flutter analyze` or `dart analyze` to confirm 0 errors and 0 warnings before finalizing previews.
 
 ## Examples
 

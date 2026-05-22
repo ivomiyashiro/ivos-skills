@@ -94,7 +94,8 @@ Configure the native platforms to intercept specific URLs and route them into th
 - [ ] Determine target platforms (iOS, Android, or both).
 - [ ] Apply conditional configuration for Android (Manifest + Asset Links).
 - [ ] Apply conditional configuration for iOS (Plist + Entitlements + AASA).
-- [ ] Run validator -> review errors -> fix.
+- [ ] Run `flutter analyze` or `dart analyze` to check for errors and warnings.
+- [ ] Review and fix any deep linking configuration errors.
 
 ### If configuring for Android:
 1. **Modify `AndroidManifest.xml`**: Add the intent filter inside the `<activity>` tag for `.MainActivity`.
@@ -148,7 +149,7 @@ Configure the native platforms to intercept specific URLs and route them into th
 ```
 
 ### Validation Loop
-Run validator -> review errors -> fix.
+Run `flutter analyze` or `dart analyze` to check for errors and warnings. Fix any issues found, then review error messages for platform-specific or linking issues.
 - **Android**: Test using ADB.
   ```bash
   adb shell 'am start -a android.intent.action.VIEW -c android.intent.category.BROWSABLE -d "https://yourdomain.com/details/123"' com.yourcompany.yourapp

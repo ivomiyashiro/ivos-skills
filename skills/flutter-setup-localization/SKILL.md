@@ -112,7 +112,8 @@ Run the following command to trigger code generation:
 ```bash
 flutter pub get
 ```
-*Feedback Loop:* Run validator -> review terminal output for ARB syntax errors -> fix missing commas or mismatched placeholders -> re-run `flutter pub get`.
+*Feedback Loop:* Run `flutter pub get` -> review terminal output for ARB syntax errors -> fix missing commas or mismatched placeholders -> re-run `flutter pub get`.
+After `flutter pub get` succeeds, run `flutter analyze` to ensure no Dart analysis errors in your localization setup.
 
 ### 3. Consume Localized Strings
 Access the localized strings in your widget tree using `AppLocalizations.of(context)`. Ensure the widget calling this is a descendant of `MaterialApp`.

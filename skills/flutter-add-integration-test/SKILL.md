@@ -87,6 +87,7 @@ Copy and follow this checklist to implement and verify integration tests.
 - [ ] **Task Progress: Execution & Feedback Loop**
   - [ ] Run `flutter drive --driver=test_driver/integration_test.dart --target=integration_test/app_test.dart`.
   - [ ] **Feedback Loop**: Review test output -> If `PumpAndSettleTimedOutException` occurs, check for infinite animations -> If widget not found, add `scrollUntilVisible` -> Re-run test until passing.
+  - [ ] **Validate Dart Analysis**: Execute `flutter analyze` or `dart analyze` to ensure 0 errors and 0 warnings before finishing.
 
 ## Examples
 

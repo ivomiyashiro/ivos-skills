@@ -21,13 +21,18 @@ Guide completion of development work by presenting clear options and handling ch
 
 ```bash
 # Run project's test suite
-npm test / cargo test / pytest / go test ./...
+npm test / cargo test / pytest / go test ./... / flutter test ./...
+
+# For Flutter projects, also run static analysis:
+flutter analyze / dart analyze
 ```
 
 **Follow the verification-before-completion skill strictly:**
 - Run the FULL test command fresh (not a previous run)
 - Read the complete output
 - Confirm 0 failures, pristine output
+- For TypeScript projects: Run `tsc --noEmit` → confirm 0 errors
+- For Flutter projects: Run `flutter analyze` → confirm 0 errors and 0 warnings
 - Only then claim "tests pass"
 
 **If tests fail:**

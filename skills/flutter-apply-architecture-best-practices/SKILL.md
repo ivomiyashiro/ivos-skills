@@ -67,6 +67,7 @@ Follow this sequential workflow when adding a new feature to the application. Co
 - [ ] **Step 7: Inject Dependencies.** Register the new Service, Repository, and ViewModel in the dependency injection container (e.g., `provider` or `get_it`).
 - [ ] **Step 8: Run Validator.** Execute unit tests for the ViewModel and Repository.
   - *Feedback Loop:* Run tests -> Review failures -> Fix logic -> Re-run until passing.
+- [ ] **Step 9: Validate Dart Analysis.** Execute `flutter analyze` or `dart analyze` to ensure 0 errors and 0 warnings.
 
 ## Examples
 

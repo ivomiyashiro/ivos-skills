@@ -70,6 +70,7 @@ Use the following checklist to implement and validate network operations.
 - [ ] 5. Integrate the `Future` into the UI using `FutureBuilder`.
 - [ ] 6. Handle `snapshot.hasData`, `snapshot.hasError`, and default to a `CircularProgressIndicator`.
 - [ ] 7. **Feedback Loop:** Run the app -> trigger the network request -> review console for unhandled exceptions -> fix parsing or permission errors.
+- [ ] 8. **Validate Dart Analysis:** Execute `flutter analyze` or `dart analyze` to ensure 0 errors and 0 warnings before finishing.
 
 ## Examples
 

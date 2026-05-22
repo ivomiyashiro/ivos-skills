@@ -50,7 +50,8 @@ Follow this workflow to implement a layout that adapts to the available `BoxCons
 - [ ] Define an adaptive breakpoint (e.g., `largeScreenMinWidth = 600`).
 - [ ] **If `maxWidth > largeScreenMinWidth`:** Return a large-screen layout (e.g., a `Row` placing a navigation sidebar and content area side-by-side).
 - [ ] **If `maxWidth <= largeScreenMinWidth`:** Return a small-screen layout (e.g., a `Column` or standard navigation-style approach).
-- [ ] Run validator -> resize the application window -> review layout transitions -> fix overflow errors.
+- [ ] Run `flutter analyze` or `dart analyze` to check for errors and warnings.
+- [ ] Resize the application window -> review layout transitions -> fix overflow errors.
 
 ## Workflow: Optimizing for Large Screens
 
@@ -62,7 +63,8 @@ Follow this workflow to prevent UI elements from stretching unnaturally on large
 - [ ] **If optimizing a form or text block:** Wrap the component in a `ConstrainedBox`.
 - [ ] Apply `BoxConstraints(maxWidth: [optimal_width])` to the `ConstrainedBox`.
 - [ ] Wrap the `ConstrainedBox` in a `Center` widget to keep the constrained content centered on large screens.
-- [ ] Run validator -> test on desktop/tablet target -> review horizontal stretching -> adjust `maxWidth` or grid extents.
+- [ ] Run `flutter analyze` or `dart analyze` to check for errors and warnings.
+- [ ] Test on desktop/tablet target -> review horizontal stretching -> adjust `maxWidth` or grid extents.
 
 ## Examples
 
