@@ -9,7 +9,7 @@ description: Use when implementing any feature or bugfix, before writing impleme
 
 Write the test first. Watch it fail. Write minimal code to pass.
 
-**Domain awareness:** Read `CONTEXT.md` (domain glossary) if it exists — test names and public interface vocabulary must match the project's language. Check `docs/adr/` for decisions in the area you're testing; don't re-litigate them.
+**Domain awareness:** Read `CONTEXT.md` (domain glossary) if it exists — test names and public interface vocabulary must match the project's language.
 
 **Core principle:** If you didn't watch the test fail, you don't know if it tests the right thing.
 

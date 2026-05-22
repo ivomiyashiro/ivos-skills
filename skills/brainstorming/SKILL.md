@@ -21,7 +21,7 @@ Every project goes through this process. A todo list, a single-function utility,
 
 You MUST create a task for each of these items and complete them in order:
 
-1. **Explore project context** — check files, docs, recent commits. Read `CONTEXT.md` (domain glossary) if it exists and use its vocabulary throughout. Check `docs/adr/` for decisions in the area.
+1. **Explore project context** — check files, docs, recent commits. Read `CONTEXT.md` (domain glossary) if it exists and use its vocabulary throughout.
 2. **Offer visual companion** (if topic will involve visual questions) — this is its own message, not combined with a clarifying question. See the Visual Companion section below.
 3. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
 4. **Propose 2-3 approaches** — with trade-offs and your recommendation
@@ -129,15 +129,6 @@ After exploring context and before proposing approaches, verify factual claims t
 **Keeping CONTEXT.md current:**
 
 Whenever a term is resolved or clarified during the brainstorming session — whether challenged against the glossary or refined from fuzzy language — update `CONTEXT.md` immediately, not at the end. `CONTEXT.md` contains only the domain glossary: term definitions and their precise meanings. Do not add implementation details, spec decisions, or rationale there. Follow the format defined in the `domain-glossary` skill.
-
-**When to offer an ADR:**
-
-Only offer to create an ADR when all three conditions hold:
-1. A real architectural decision was made (not an implementation detail)
-2. A future agent or developer would likely re-litigate it without a record
-3. The reason is load-bearing — not "not worth it right now" or something self-evident
-
-If all three apply, offer: "This seems worth recording as an ADR so future work doesn't re-open it. Want me to write one?" Do not offer ADRs for routine choices.
 
 **Documentation:**
 

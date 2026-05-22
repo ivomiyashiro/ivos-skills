@@ -65,7 +65,7 @@ Show counts and a one-line summary per issue.
 
 ### 1. Gather context
 
-Read the full issue: body, comments, labels, reporter, dates. Parse any previous triage notes so you don't re-ask already-resolved questions. Explore the codebase using the domain glossary (`CONTEXT.md`) if it exists, and respect ADRs in the relevant area.
+Read the full issue: body, comments, labels, reporter, dates. Parse any previous triage notes so you don't re-ask already-resolved questions. Explore the codebase using the domain glossary (`CONTEXT.md`) if it exists.
 
 ### 2. Recommend
 

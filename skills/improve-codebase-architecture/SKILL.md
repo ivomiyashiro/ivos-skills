@@ -28,7 +28,7 @@ Use these terms exactly in all suggestions:
 
 ### 1. Explore
 
-Read `CONTEXT.md` and any ADRs in the area before starting. Use the Explore subagent to walk the codebase organically. Notice where friction lives:
+Read `CONTEXT.md` before starting. Use the Explore subagent to walk the codebase organically. Notice where friction lives:
 
 - Does understanding a concept require jumping across many small modules?
 - Are there shallow modules — interface nearly as complex as the implementation?
@@ -58,6 +58,3 @@ Once the user picks a candidate, enter a grilling conversation. Walk the design 
 Apply side effects inline as decisions crystallize:
 
 - If you name a deepened module with a concept not in `CONTEXT.md` → add it immediately (use the `domain-glossary` skill)
-- If the user rejects a candidate with a load-bearing reason → offer an ADR
-
-**ADR conflicts**: if a candidate contradicts an existing ADR, surface it only when the friction is real. Mark it clearly: "contradicts ADR-XXXX — worth reopening because…". Do not list every theoretical refactor an ADR rules out.

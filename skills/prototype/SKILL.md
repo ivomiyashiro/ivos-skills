@@ -108,7 +108,6 @@ The user picks a direction. Capture the answer (see [When done](#when-done)).
 The answer is the only thing worth keeping. Before deleting the prototype, capture it somewhere durable:
 
 - **Commit message** on the commit that removes it: "proto: validated X, chose Y because Z"
-- **ADR** if it was a load-bearing architectural decision (use the `domain-glossary` skill)
 - **Issue / PR description** if it informs upcoming work
 - **`NOTES.md`** next to the prototype as a placeholder if the user is AFK
 

@@ -13,7 +13,7 @@ Assume the executor is a skilled developer but has **zero context** about the co
 
 **Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
 
-**Domain awareness:** Read `CONTEXT.md` (domain glossary) if it exists — use its vocabulary in task names, descriptions, and acceptance criteria. Check `docs/adr/` for decisions in the area you're planning; don't re-litigate them.
+**Domain awareness:** Read `CONTEXT.md` (domain glossary) if it exists — use its vocabulary in task names, descriptions, and acceptance criteria.
 
 **Context:** If working in an isolated worktree, it should have been created via the `using-git-worktrees` skill at execution time.
 

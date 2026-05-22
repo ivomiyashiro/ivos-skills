@@ -1,24 +1,20 @@
 ---
 name: domain-glossary
-description: Maintain the project's domain glossary (CONTEXT.md) and architectural decisions (docs/adr/). Use when starting work in a new project, when a domain term needs precision, or when a key architectural decision is made. Reference this from other skills before touching code.
+description: Maintain the project's domain glossary (CONTEXT.md). Use when starting work in a new project, when a domain term needs precision, or when vocabulary needs to be aligned. Reference this from other skills before touching code.
 ---
 
 # Domain Glossary
 
-Maintain two sources of truth for the project's domain and decisions. Read them before starting any skill. Update them inline as things crystallize — never batch.
+Maintain the project's domain glossary. Read it before starting any skill. Update it inline as things crystallize — never batch.
 
 ## Structure
 
 ```
 /
-├── CONTEXT.md          ← domain glossary (terms only, no implementation)
-└── docs/
-    └── adr/
-        ├── 0001-<slug>.md
-        └── 0002-<slug>.md
+└── CONTEXT.md          ← domain glossary (terms only, no implementation)
 ```
 
-Create files **lazily**: only when you have something to write. Don't scaffold empty files upfront.
+Create the file **lazily**: only when you have something to write. Don't scaffold it upfront.
 
 ---
 
@@ -59,50 +55,9 @@ Create it when the first domain term is resolved during a grilling or planning s
 
 ---
 
-## ADRs — Architectural Decision Records
-
-### When to offer an ADR
-
-Only offer one when **all three** are true:
-
-1. A real architectural decision was made (not just implementation detail)
-2. A future agent or developer would likely re-litigate it without the record
-3. The reason is load-bearing (not "not worth it right now" or self-evident)
-
-Don't offer an ADR for ephemeral decisions. Do offer one when the user rejects a refactoring candidate with a real constraint — so future architecture reviews don't re-suggest the same thing.
-
-### Format
-
-```markdown
-# ADR-NNNN: <Short title>
-
-**Date:** YYYY-MM-DD  
-**Status:** Accepted
-
-## Context
-
-<What was the situation that forced a decision?>
-
-## Decision
-
-<What was decided, in one or two sentences.>
-
-## Consequences
-
-- <What becomes easier>
-- <What becomes harder or constrained>
-```
-
-### Numbering
-
-Use the next sequential number. Zero-pad to 4 digits: `0001`, `0002`, etc.
-
----
-
 ## How other skills use this
 
 At the start of any skill session that touches code or design:
 
 1. Check if `CONTEXT.md` exists. If yes, read it and use its vocabulary.
-2. Check `docs/adr/` for decisions in the area you're touching. Don't re-litigate them.
-3. Update inline as the session progresses.
+2. Update inline as the session progresses.

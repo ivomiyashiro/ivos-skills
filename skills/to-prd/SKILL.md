@@ -11,7 +11,7 @@ Synthesize the current conversation context and codebase understanding into a PR
 
 ### 1. Explore the repo
 
-If you haven't already explored the codebase, do it now. Read `CONTEXT.md` (domain glossary) if it exists — use its vocabulary throughout the PRD. Check `docs/adr/` for decisions in the area you're working on; respect them.
+If you haven't already explored the codebase, do it now. Read `CONTEXT.md` (domain glossary) if it exists — use its vocabulary throughout the PRD.
 
 ### 2. Identify modules
 
