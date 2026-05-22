@@ -260,6 +260,7 @@ El script falla si la carpeta ya existe. Después de scaffold:
 - [ ] Config validada al boot (env.ts con Zod parse top-level).
 - [ ] Auth conectada: `authMiddleware(verify)` en `app.ts`, `requireAuth` donde corresponda.
 - [ ] Tests unit (handler con deps mockeadas) y al menos uno integration (`app.request()`).
+- [ ] `bun run typecheck` (o `tsc --noEmit`) pasa sin errores (0 errores TS, `strict` activo).
 - [ ] Sin importaciones cross-feature directas.
 - [ ] Sin `throw` fuera del boundary (boot, programmer errors).
 - [ ] Sin logs de access tokens completos.

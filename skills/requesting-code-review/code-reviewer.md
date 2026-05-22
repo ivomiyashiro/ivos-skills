@@ -55,6 +55,7 @@ Task tool (general-purpose):
     - Edge cases covered?
     - Integration tests where they matter?
     - All tests passing?
+    - If TypeScript: run `tsc --noEmit` and include the output. Type errors are not visible from diffs alone and can lurk in cross-file combinations.
 
     **Production readiness:**
     - Migration strategy if schema changed?
