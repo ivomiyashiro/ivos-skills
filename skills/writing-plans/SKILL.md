@@ -57,7 +57,7 @@ Rules for the Macro Plan:
 - A subagent reading only the Macro Plan must understand what gets built and in what order.
 - **Parallel with:** Tasks that have no shared files or prerequisites and can be executed simultaneously by different subagents. If blank, the task is sequential.
 - **Type:** Every subtask must be tagged **AFK** or **HITL** (see below). Prefer AFK over HITL — design tasks so a human only needs to intervene when truly necessary.
-- **Vertical slices:** Each subtask must be a tracer bullet that cuts end-to-end through ALL relevant layers (schema → API → UI → tests), not a horizontal layer. A completed slice is independently demonstrable. Prefer many thin slices over few thick ones. **Anti-pattern:** "T1: design full schema. T2: implement all endpoints. T3: build all screens."
+- **Separation of Concerns:** If a feature involves both frontend and backend work, they MUST be split into separate, related tasks to avoid mixing responsibilities. For example, have one task for the backend API and a subsequent task for the frontend integration that depends on it. Maintain atomic, demonstrable steps but do not mix backend and frontend code in the same task.
 
 ### HITL vs AFK classification
 
@@ -202,16 +202,12 @@ Each subtask lives in its own file (`task-NN-<kebab-name>.md`). This keeps tasks
 
 - [ ] **Step 1: RED — Write the failing test (CONTRACT)**
 
-The test is a **behavioral contract**. It must be literal, executable code that defines exactly what the task must achieve.
+Describe the **test strategy and scenarios**, not the exact literal test code. Provide a clear description of the behavior the test must enforce (the contract).
 
-```python
-def test_specific_behavior():
-    result = function(input)
-    assert result == expected
-```
-
-Run: `pytest tests/path/test.py::test_name -v`
-Expected: FAIL with "function not defined"
+Requirements:
+- Describe the expected inputs and outputs.
+- Outline the edge cases to cover.
+- Do NOT write literal test code or literal development code here.
 
 - [ ] **Step 2: GREEN — Implement to pass the test (STRATEGY)**
 
@@ -261,7 +257,7 @@ Commit with a descriptive message.
 - If a subtask modifies a file that was created earlier, it must include the full file path and describe what already exists.
 - Never say "same as Task 3" or "similar to above." Repeat the code.
 - Never say "use the helper from T1" without showing what that helper is.
-- The **test code (RED)** must be literal and complete — it is the contract.
+- The **test code (RED)** must NOT be literal code. Describe the scenarios, inputs, outputs, and edge cases to test.
 - The **implementation approach (GREEN)** must describe constraints and requirements, not exact production code.
 
 ---
@@ -353,7 +349,7 @@ Do the types, method signatures, and property names you used in later task files
 
 ### 6.9 Implementation Literalness Check
 **For every task that writes/modifies code:**
-- Does the RED step contain literal, executable test code?
+- Does the RED step describe the test scenarios instead of providing literal, executable test code?
 - Does the GREEN step describe the approach (NOT exact implementation code)?
 - Is there any exact production code in the GREEN phase? If yes, remove it.
 
