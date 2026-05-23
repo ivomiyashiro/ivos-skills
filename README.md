@@ -40,6 +40,19 @@ OpenCode usa su propio sistema de plugins. Instala ivos-skills por separado aunq
 
 Para mas detalles, consulta [`.opencode/INSTALL.md`](.opencode/INSTALL.md).
 
+### Antigravity CLI
+
+```bash
+# Instalar el plugin desde el repositorio remoto
+agy plugin install https://github.com/ivomiyashiro/ivos-skills.git
+```
+
+Reinicia el CLI de Antigravity (`agy`). Las skills estaran disponibles automaticamente. Para desinstalar:
+
+```bash
+agy plugin uninstall ivos-skills
+```
+
 ### Skills CLI (multi-agente)
 
 Si prefieres usar el CLI de skills para instalar todo el paquete o skills individuales:
@@ -90,7 +103,7 @@ npx skills update ivos-skills -g
 | `systematic-debugging` | Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes |
 | `test-driven-development` | Use when implementing any feature or bugfix, before writing implementation code |
 | `using-git-worktrees` | Use when starting feature work that needs isolation from current workspace or before executing implementation plans |
-| `using-superpowers` | Use when starting any conversation - establishes how to find and use skills |
+| `using-skills` | Use when starting any conversation - establishes how to find and use skills |
 | `verification-before-completion` | Use when about to claim work is complete, fixed, or passing, before committing or creating PRs |
 | `writing-plans` | Use when you have a spec or requirements for a multi-step task, before touching code |
 | `writing-skills` | Use when creating new skills, editing existing skills, or verifying skills work before deployment |
@@ -116,6 +129,14 @@ rm -rf ~/.config/opencode/node_modules/ivos-skills
 O actualiza manualmente via npm:
 ```bash
 npm install ivos-skills@git+https://github.com/ivomiyashiro/ivos-skills.git --prefix ~/.config/opencode
+```
+
+### Antigravity CLI
+
+Para actualizar el plugin a la ultima version, reinstalalo ejecutando:
+```bash
+agy plugin uninstall ivos-skills
+agy plugin install https://github.com/ivomiyashiro/ivos-skills.git
 ```
 
 ### Skills CLI

@@ -27,3 +27,22 @@ Claude Code tracks the installed git commit SHA and pulls the latest version fro
 ## OpenCode
 
 See [.opencode/INSTALL.md](.opencode/INSTALL.md) for OpenCode installation instructions.
+
+---
+
+## Antigravity CLI
+
+### Install
+
+```bash
+agy plugin install https://github.com/ivomiyashiro/ivos-skills.git
+```
+
+Then restart `agy`. All skills are available automatically.
+
+### Uninstall
+
+```bash
+agy plugin uninstall ivos-skills
+```
+

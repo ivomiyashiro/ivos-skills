@@ -6,7 +6,7 @@ license: Complete terms in LICENSE.txt
 
 This skill guides creation of distinctive, production-grade frontend interfaces that avoid generic "AI slop" aesthetics. Implement real working code with exceptional attention to aesthetic details and creative choices.
 
-> **Note on Visual Mocks:** This skill is used during **implementation**, after the brainstorming phase. By this point, visual mocks should already exist in `docs/superpowers/mocks/index.html` and have been approved by the user. Follow the aesthetic guidelines below, but respect the structure, layout, and design decisions captured in the approved mock. The mock is the visual contract — deviations should only happen if the mock is ambiguous or the user requests changes.
+> **Note on Visual Mocks:** This skill is used during **implementation**, after the brainstorming phase. By this point, visual mocks should already exist in `docs/mocks/` and have been approved by the user. Follow the aesthetic guidelines below, but respect the structure, layout, and design decisions captured in the approved mocks. The mocks are the visual contract — deviations should only happen if they are ambiguous or the user requests changes.
 
 The user provides frontend requirements: a component, page, application, or interface to build. They may include context about the purpose, audience, or technical constraints.
 

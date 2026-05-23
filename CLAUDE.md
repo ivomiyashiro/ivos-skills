@@ -20,6 +20,7 @@ skills/
   plugins/ivos-skills.js  # OpenCode plugin entry point
   INSTALL.md              # OpenCode-specific install guide
 package.json              # npm package (used by OpenCode plugin manager)
+plugin.json               # Antigravity CLI plugin metadata
 INSTALL.md                # Installation guide for all agents
 ```
 
@@ -72,6 +73,7 @@ Requires Graphviz (`dot` on PATH).
 | Claude Code | `.claude-plugin/` | `claude plugins update ivos-skills` |
 | OpenCode | `.opencode/plugins/ivos-skills.js` injects `skills/` path into config | Change pinned tag in `opencode.json`, restart |
 | Skills CLI | `package.json` + `skills/` directory | `npx skills update ivos-skills -g` |
+| Antigravity CLI | `plugin.json` | `agy plugin uninstall ivos-skills` followed by `agy plugin install https://github.com/ivomiyashiro/ivos-skills.git` |
 
 ## Key conventions
 

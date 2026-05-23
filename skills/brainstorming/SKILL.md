@@ -26,8 +26,8 @@ You MUST create a task for each of these items and complete them in order:
 3. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
 4. **Propose 2-3 approaches** — with trade-offs and your recommendation
 5. **Present design** — in sections scaled to their complexity, get user approval after each section
-6. **Create visual mocks** — if the project involves UI/frontend: first ask design preference questions (aesthetic direction, palette, typography, references), then load the `frontend-design` skill, then generate `docs/superpowers/mocks/index.html` with all screens/components in styled sections. This is a hard gate: the human must approve the mocks before proceeding. Only skip if the user explicitly requests it.
-7. **Write design doc** — save to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` and commit
+6. **Save visual mocks from companion** — if the project involves UI/frontend: the accepted visual screens and design selections chosen by the user in the Visual Companion are added/copied to `docs/mocks/`. This is a hard gate: the human must approve these mocks before proceeding. Only skip if the user explicitly requests it.
+7. **Write design doc** — save to `docs/specs/YYYY-MM-DD-<topic>-design.md` and commit
 8. **Spec self-review** — quick inline check for placeholders, contradictions, ambiguity, scope (see below)
 9. **User reviews written spec** — ask user to review the spec file before proceeding
 10. **Transition to implementation** — invoke writing-plans skill to create implementation plan (Macro Plan + task files)
@@ -44,7 +44,7 @@ digraph brainstorming {
     "Present design sections" [shape=box];
     "User approves design?" [shape=diamond];
     "Has UI/frontend?" [shape=diamond];
-    "Create visual mocks" [shape=box];
+    "Save visual mocks from companion" [shape=box];
     "User approves mocks?" [shape=diamond];
     "Write design doc" [shape=box];
     "Spec self-review\n(fix inline)" [shape=box];
@@ -60,10 +60,10 @@ digraph brainstorming {
     "Present design sections" -> "User approves design?";
     "User approves design?" -> "Present design sections" [label="no, revise"];
     "User approves design?" -> "Has UI/frontend?" [label="yes"];
-    "Has UI/frontend?" -> "Create visual mocks" [label="yes"];
+    "Has UI/frontend?" -> "Save visual mocks from companion" [label="yes"];
     "Has UI/frontend?" -> "Write design doc" [label="no"];
-    "Create visual mocks" -> "User approves mocks?";
-    "User approves mocks?" -> "Create visual mocks" [label="no, revise"];
+    "Save visual mocks from companion" -> "User approves mocks?";
+    "User approves mocks?" -> "Save visual mocks from companion" [label="no, revise"];
     "User approves mocks?" -> "Write design doc" [label="yes"];
     "Write design doc" -> "Spec self-review\n(fix inline)";
     "Spec self-review\n(fix inline)" -> "User reviews spec?";
@@ -132,14 +132,14 @@ Whenever a term is resolved or clarified during the brainstorming session — wh
 
 **Documentation:**
 
-- Write the validated design (spec) to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`
+- Write the validated design (spec) to `docs/specs/YYYY-MM-DD-<topic>-design.md`
   - (User preferences for spec location override this default)
 - Use elements-of-style:writing-clearly-and-concisely skill if available
 - Commit the design document to git
 
 ## Spec Template
 
-Every spec document (`docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`) MUST include these sections:
+Every spec document (`docs/specs/YYYY-MM-DD-<topic>-design.md`) MUST include these sections:
 
 ### 1. Problem / Opportunity
 One paragraph: what are we solving and why does it matter?
@@ -187,7 +187,7 @@ Wait for the user's response. If they request changes, make them and re-run the 
 **Plan Generation:**
 
 - Invoke the writing-plans skill to create the implementation plan
-- The plan will be a directory: `docs/superpowers/plans/YYYY-MM-DD-<feature-name>/`
+- The plan will be a directory: `docs/plans/YYYY-MM-DD-<feature-name>/`
   - `plan.md` — Macro Plan (roadmap + file structure + required skills)
   - `task-01-*.md`, `task-02-*.md`, ... — Individual self-contained task files
 - Do NOT invoke any other skill. writing-plans is the next step.
@@ -222,34 +222,30 @@ If they agree to the companion, read the detailed guide before proceeding:
 
 ## Visual Mocks
 
-After the user approves the conceptual design, if the project involves UI/frontend, you MUST create a visual mock before writing the design doc or invoking writing-plans. This is a **hard gate**: do not proceed without explicit user approval of the mocks, unless the user explicitly asks to skip this step.
+After the user approves the conceptual design, if the project involves UI/frontend, you MUST save the accepted screens from the Visual Companion as visual mocks in `docs/mocks/` before writing the design doc or invoking writing-plans. This is a **hard gate**: do not proceed without explicit user approval of these mocks.
 
 ### Purpose
 
-The visual mock is a single static HTML file (`docs/superpowers/mocks/index.html`) that shows all screens, components, and states in one scrollable view. It serves as the **visual contract** between human and agent. Every frontend task in the implementation plan will reference a section of this mock.
+The visual mocks are static HTML files saved in `docs/mocks/` that represent the approved screens/components chosen during the Visual Companion session. They serve as the **visual contract** between human and agent. Every frontend task in the implementation plan will reference these mocks.
 
 ### Rules
 
-- **One file only**: `docs/superpowers/mocks/index.html`. CSS is embedded in `<style>`.
-- **Static**: No JavaScript, no interactivity, no navigation between pages. Pure HTML + CSS.
-- **Storybook-style layout**: Each screen or component is a `<section>` with a clear heading and ID. The human scrolls through one file to see everything.
-- **Faithful to the approved design**: Colors, typography, spacing, layout, and structure must match the design the user approved. This is not a wireframe of options — it is the final visual target.
-- **Include all states**: Empty state, loading state, error state, populated state — whatever is relevant.
+- **Source**: Directly populated and completed using the screens accepted by the user during the Visual Companion session.
+- **Location**: Save each approved screen in `docs/mocks/<screen-name>.html` (or `docs/mocks/index.html` if it's a unified layout).
+- **Static**: No active development is done directly in these files; they are copy-pasted/saved versions of the final states approved in the companion.
 
 ### Process
 
 1. After the user approves the conceptual design, check: does this project have UI/frontend?
-   - If yes: proceed to steps 2–3 below.
+   - If yes: proceed to step 2.
    - If no: skip to writing the design doc.
-2. **Elicit design preferences** — ask the user these questions one at a time before touching any HTML. Full question list in `skills/brainstorming/visual-mocks.md` under "Design Preferences". Do not skip this even if the user already mentioned a color or style in passing — get explicit answers before generating.
-3. **Load the `frontend-design` skill** — required before generating the mock. The mock must follow its aesthetic guidelines (typography, color, motion direction, spatial composition).
-4. Create `docs/superpowers/mocks/index.html` following the guide in `skills/brainstorming/visual-mocks.md`.
-5. Present the mock to the user:
-   > "I've created the visual mock for the approved design. Please open `docs/superpowers/mocks/index.html` in your browser and review it. Let me know if any adjustments are needed. We won't start the implementation plan until you confirm the visual looks correct."
-6. If the user requests changes, iterate on the mock file. Never reuse filenames — create `index-v2.html`, `index-v3.html`, etc.
-7. Once approved, proceed to write the design doc and then invoke `writing-plans`.
+2. Save the final accepted screens from the Visual Companion session (located in `brainstorm/<session-id>/content/`) directly to `docs/mocks/`.
+3. Present the mocks to the user:
+   > "I've saved the accepted screens from the companion as visual mocks in `docs/mocks/`. Please verify them. Once confirmed, we will write the design doc and proceed."
+4. If the user requests changes, run the Visual Companion again, iterate, and save the updated version to `docs/mocks/` (e.g., `<screen-name>-v2.html`).
+5. Once approved, proceed to write the design doc and then invoke `writing-plans`.
 
 ### Link to detailed guide
 
-For the full guide on creating mocks (template, examples, tips), read:
+For the full guide on how mocks are populated from the companion, read:
 `skills/brainstorming/visual-mocks.md`

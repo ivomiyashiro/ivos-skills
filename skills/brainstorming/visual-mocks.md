@@ -1,187 +1,45 @@
 # Visual Mocks Guide
 
-Guide for creating static HTML/CSS visual mocks during the brainstorming phase. These mocks are the approved visual contract that implementation tasks will reference.
+Guide for creating static HTML/CSS visual mocks. These mocks are the final approved screens/components from the Visual Companion session and serve as the approved visual contract that implementation tasks will reference.
 
-## Design Preferences
+## How They Are Created
 
-Before generating any HTML, ask the user these questions **one at a time**. Every answer shapes the mock — skipping this produces a generic, low-value result.
-
-| # | Question | What it informs |
-|---|----------|-----------------|
-| 1 | **¿Qué sensación o mood querés que transmita el diseño?** (ej. minimalista y profesional, bold y enérgico, cálido y cercano, editorial, futurista, playful) | Aesthetic direction — the single most load-bearing decision |
-| 2 | **¿Tenés colores de marca o una paleta en mente?** Si no, ¿preferís un tema oscuro, claro o algo intermedio? | Color system and contrast strategy |
-| 3 | **¿Hay alguna app, sitio o diseño que te guste y quieras tomar como referencia?** (puede ser un competidor, una industria diferente, cualquier cosa) | Concrete visual benchmark |
-| 4 | **¿Tenés preferencias de tipografía?** (ej. algo serio y geométrico, humanista y legible, display llamativo, serif clásico) — si no, ¿hay alguna que no quieras? | Font pairing and tone |
-| 5 | **¿Cómo de densa querés la interfaz?** (mucho espacio en blanco y pocas cosas a la vez vs. información compacta y densa) | Layout density and information hierarchy |
-
-**Rules:**
-- Ask them one at a time, not as a batch list.
-- If the user already answered one in passing during brainstorming, skip it and note the answer.
-- Capture all answers before opening any file. Don't start the HTML until you have at least answers to questions 1, 2, and 3.
-- If the user says "whatever you think" or "I trust you": pick a bold, specific direction anyway and state it explicitly before proceeding — don't default to generic neutrals.
-
-## When to Use
-
-Create visual mocks **after** the user approves the conceptual design and **before** writing the design doc or invoking writing-plans. This applies to any project that involves UI, web frontend, mobile screens, or visual components.
-
-Skip only if:
-- The user explicitly asks to skip visual mocks.
-- The project has no visual surface (pure API, CLI tool, background job, etc.).
+Unlike wireframes built from scratch, the **Visual Mocks** are directly populated from the accepted screens in the **Visual Companion** session. The agent saves/copies the final HTML files accepted by the user during the brainstorming session (located in `brainstorm/<session-id>/content/`) directly to `docs/mocks/`.
 
 ## Output
 
-A single file:
+Mock screens are saved to the project directory:
 
 ```
-docs/superpowers/mocks/index.html
+docs/mocks/<screen-name>.html
 ```
 
-CSS is embedded inside `<style>` in the same file. No external dependencies. No JavaScript.
+Each file contains the static HTML + CSS of the approved screen.
 
 ## Rules
 
 | Rule | Why |
 |------|-----|
-| **One file only** | Easy to open, review, and reference. No need to jump between files. |
+| **From Companion** | Mocks are created by copy-pasting/saving the exact HTML content of the screens approved during the companion session. |
 | **Static HTML + CSS** | Opens in any browser with a double-click. No build step, no server needed. |
-| **Storybook-style sections** | Each screen/component is a `<section>` with an `id`. Scroll to see everything. |
-| **No interactivity** | No clicks, no hover effects, no JS. This is a visual spec, not a prototype. |
-| **Faithful to approved design** | Must match the design the user already approved. Colors, fonts, spacing, layout. |
-| **All relevant states** | Empty, loading, error, success, populated — include what matters for implementation. |
+| **Organized by Screen** | Each approved view is saved under a descriptive name (e.g., `dashboard.html`, `login.html`) or combined into `index.html`. |
+| **Faithful to Approved Design** | Must match the exact state approved in the companion. |
 
-## Template
+## Naming Sections and Files
 
-Use this as the starting point for every mock:
+Use kebab-case for filenames and section IDs to clearly describe the screen or component:
 
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Visual Mocks — PROJECT_NAME</title>
-  <style>
-    /* Base reset and layout */
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: system-ui, -apple-system, sans-serif;
-      background: #f5f5f5;
-      color: #111;
-      line-height: 1.5;
-    }
+- `docs/mocks/login-screen.html`
+- `docs/mocks/dashboard.html`
+- `docs/mocks/dashboard-empty-state.html`
 
-    /* Page wrapper */
-    .mock-container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 40px 20px;
-    }
-
-    /* Each screen/component section */
-    .mock-section {
-      background: #fff;
-      border-radius: 12px;
-      padding: 32px;
-      margin-bottom: 32px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    }
-
-    .mock-section h2 {
-      font-size: 14px;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: #666;
-      margin-bottom: 24px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid #eee;
-    }
-
-    /* Your component styles go here */
-  </style>
-</head>
-<body>
-  <div class="mock-container">
-
-    <section class="mock-section" id="login-screen">
-      <h2>Login Screen</h2>
-      <!-- Login form markup here -->
-    </section>
-
-    <section class="mock-section" id="dashboard-screen">
-      <h2>Dashboard Screen</h2>
-      <!-- Dashboard markup here -->
-    </section>
-
-    <section class="mock-section" id="dashboard-empty-state">
-      <h2>Dashboard — Empty State</h2>
-      <!-- Empty state markup here -->
-    </section>
-
-  </div>
-</body>
-</html>
-```
-
-## Naming Sections
-
-Use kebab-case IDs that clearly describe the screen or component:
-
-- `id="login-screen"`
-- `id="dashboard-screen"`
-- `id="dashboard-empty-state"`
-- `id="navbar-component"`
-- `id="modal-delete-confirmation"`
-
-These IDs will be referenced in task files as:
+These will be referenced in task files as:
 ```markdown
-**Visual Reference:** `docs/superpowers/mocks/index.html#login-screen`
+**Visual Reference:** `docs/mocks/login-screen.html`
 ```
-
-## What to Include
-
-### Always include
-- Every distinct screen or page.
-- Reusable components that appear in multiple places (navbar, sidebar, footer).
-- Critical states that affect layout or structure (empty, loading, error).
-
-### Skip if trivial
-- A standard button in its default state (unless it has a unique, complex design).
-- Simple text paragraphs without special styling.
-- Things that are 100% standard HTML elements with no custom design.
-
-### Example decisions
-| Element | Include? | Reason |
-|---------|----------|--------|
-| Login form with custom styling | Yes | Custom layout, branded design. |
-| Dashboard with data tables and charts | Yes | Complex layout, many elements. |
-| Navbar with logo, links, avatar | Yes | Reused across screens, custom design. |
-| Standard browser alert() dialog | No | Platform-native, not custom. |
-| Loading spinner (simple CSS circle) | No | Trivial, 3 lines of CSS. |
-| Loading skeleton for dashboard cards | Yes | Affects layout, custom structure. |
-
-## Styling Tips
-
-- **Use CSS variables** for colors and spacing so the mock is easy to adjust:
-  ```css
-  :root {
-    --color-primary: #6366f1;
-    --color-bg: #ffffff;
-    --space-md: 16px;
-  }
-  ```
-- **Keep it realistic but lightweight**: Use real content (names, titles, data) instead of "Lorem ipsum" when possible. It helps the user judge spacing and hierarchy.
-- **Show the container bounds**: A light border or background color behind each section makes it clear where one component ends and another begins.
-- **Responsive?** If the design has specific breakpoints, include a note in the section heading (e.g., `<h2>Login Screen — Desktop (1024px)</h2>`). You don't need to build the full responsive version unless it's critical.
-
-## Iterating
-
-If the user requests changes:
-1. Create a new file: `index-v2.html`, `index-v3.html`, etc.
-2. Never overwrite the approved version until the new one is accepted.
-3. After approval, the latest version becomes the canonical reference. You may delete older versions or keep them for history.
 
 ## Relationship to Visual Companion
 
-The **Visual Companion** (`visual-companion.md`) is a browser-based tool used *during* brainstorming to compare options, iterate on ideas, and get rapid feedback. It is interactive and exploratory.
+The **Visual Companion** is the interactive, browser-based environment used *during* brainstorming to compare options, iterate on ideas, and get rapid feedback.
 
-**Visual Mocks** are the **final approved artifact** produced *after* brainstorming is complete. They are static, precise, and serve as the implementation spec. Think of the Visual Companion as the sketchpad and Visual Mocks as the blueprint.
+Once a screen or layout is accepted and approved by the user, that screen is copied directly to **`docs/mocks/`** to become the final **Visual Mock** (the blueprint for implementation).

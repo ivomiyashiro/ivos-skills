@@ -18,8 +18,8 @@ Assume the executor is a skilled developer but has **zero context** about the co
 **Context:** If working in an isolated worktree, it should have been created via the `using-git-worktrees` skill at execution time.
 
 **Save plans to:**
-- **Macro Plan:** `docs/superpowers/plans/YYYY-MM-DD-<feature-name>/plan.md`
-- **Task Files:** `docs/superpowers/plans/YYYY-MM-DD-<feature-name>/task-NN-<short-name>.md` (one file per subtask)
+- **Macro Plan:** `docs/plans/YYYY-MM-DD-<feature-name>/plan.md`
+- **Task Files:** `docs/plans/YYYY-MM-DD-<feature-name>/task-NN-<short-name>.md` (one file per subtask)
 - (User preferences for plan location override this default)
 
 ---
@@ -186,7 +186,7 @@ Each subtask lives in its own file (`task-NN-<kebab-name>.md`). This keeps tasks
 - If none beyond implicit TDD, write: `test-driven-development` (implicit)
 
 **Visual Reference (if frontend/UI task):**
-- `docs/superpowers/mocks/index.html#<section-id>` — the mock section this task must replicate.
+- `docs/mocks/<screen-name>.html` — the mock file/screen this task must replicate.
 - If no mock exists or task is not UI-related, write: "None."
 
 **Blocked by:** [List task IDs that must be complete before this task can start, e.g. "T1, T2". If none, write "None — can start immediately."] 
@@ -310,7 +310,7 @@ Skim each section/requirement in the spec. Can you point to a subtask that imple
 2. Are the listed skills relevant to the task's domain?
 3. Did you discover these skills via `find-skills` during planning, or are they just generic defaults?
 4. Are the skill names exact (e.g., `react-best-practices`, not just "React skill")?
-5. **If the task involves UI/frontend:** Does it have a `**Visual Reference:**` field pointing to the correct section in `docs/superpowers/mocks/index.html`?
+5. **If the task involves UI/frontend:** Does it have a `**Visual Reference:**` field pointing to the correct mock file in `docs/mocks/`?
 6. Does the task have a `**Definition of Done**` field?
 7. Does the task have a `**Task Type**` field?
 8. Does the task have a `**Type:**` field tagged as AFK or HITL?
@@ -388,7 +388,7 @@ During execution, the implementer or user may discover that the spec or plan nee
 
 After saving the plan, offer execution choice:
 
-**"Plan complete and saved to `docs/superpowers/plans/<feature-name>/`. Two execution options:**
+**"Plan complete and saved to `docs/plans/<feature-name>/`. Two execution options:**
 
 **1. Subagent-Driven (recommended)** — I dispatch one subagent per task from the Macro Plan. Each subagent reads only its assigned `task-NN-*.md` file in full isolation. Fast iteration, parallelizable where possible.
 

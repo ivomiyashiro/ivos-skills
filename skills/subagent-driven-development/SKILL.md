@@ -146,7 +146,7 @@ You: I'm using Subagent-Driven Development to execute this plan.
 
 [Validate worktree using using-git-worktrees]
 [Run find-skills to discover domain-specific skills]
-[Read plan.md once: docs/superpowers/plans/YYYY-MM-DD-feature/plan.md]
+[Read plan.md once: docs/plans/YYYY-MM-DD-feature/plan.md]
 [Read each task-NN-*.md file to extract full text, context, AND **Skills:** annotations]
 [Create TodoWrite with all tasks]
 
@@ -158,7 +158,7 @@ Task 1: Hook installation script
 
 Implementer: "Before I begin - should the hook be installed at user or system level?"
 
-You: "User level (~/.config/superpowers/hooks/)"
+You: "User level (~/.config/agent/hooks/)"
 
 Implementer: "Got it. Implementing now..."
 [Later] Implementer:
