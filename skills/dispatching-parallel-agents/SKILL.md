@@ -1,6 +1,6 @@
 ---
 name: dispatching-parallel-agents
-description: Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies
+description: Use for parallel debugging and bug-fixing of 2+ independent issues without shared state. For parallel feature implementation, use subagent-driven-development instead.
 ---
 
 # Dispatching Parallel Agents

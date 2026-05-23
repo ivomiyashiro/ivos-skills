@@ -51,8 +51,8 @@ This is the "table of contents" that lets anyone see the full picture at a glanc
 ```
 
 Rules for the Macro Plan:
-- **Max 10–15 subtasks**. If you need more, the feature is too big — split it into separate plans.
-- Each subtask is a **single, indivisible unit of work** (e.g., one function, one test file, one config change).
+- **Aim for fewer, high-value subtasks (e.g. 5-8)**. Group tightly related items (e.g. Model + Utility + Service + Tests) into a single task block. If you need more than 15, the feature is too big — split it into separate plans.
+- Each subtask is a **cohesive unit of work** taking roughly 15-30 minutes (e.g., full implementation of a specific feature slice with TDD).
 - Each subtask gets its own file: `task-NN-<short-kebab-name>.md`
 - A subagent reading only the Macro Plan must understand what gets built and in what order.
 - **Parallel with:** Tasks that have no shared files or prerequisites and can be executed simultaneously by different subagents. If blank, the task is sequential.
@@ -98,7 +98,7 @@ Map out which files will be created or modified and what each one is responsible
    - JSON serialization → search "json", "serialization", "model"
    - Routing/navigation → search "routing", "navigation", "router"
 3. **Review search results** and identify skills that are relevant, high-quality (1K+ installs), and from reputable sources.
-4. **Annotate skills in the plan:** For every subtask that benefits from a domain-specific skill, add a `**Skills:**` field listing the exact skill names to load.
+4. **Annotate skills in the plan:** For every subtask that benefits from a domain-specific skill, read the relevant skill and **extract the 2-3 specific rules** that apply to the task. Add a `**Skills & Rules:**` field listing the exact skill names AND the extracted rules so subagents don't have to read the entire skill file.
 
 ### Why this matters
 
@@ -109,7 +109,7 @@ The executor (`executing-plans`) will also run `find-skills`, but if the **plan 
 
 ### Skill annotation in task files
 
-Add a `**Skills:**` field to every task file that needs domain-specific guidance:
+Add a `**Skills & Rules:**` field to every task file that needs domain-specific guidance:
 
 ```markdown
 # Task N: [Component Name]
@@ -118,16 +118,16 @@ Add a `**Skills:**` field to every task file that needs domain-specific guidance
 
 **Files:** ...
 
-**Skills:**
-- `react-best-practices` — for component structure and memoization rules
-- `test-driven-development` — for TDD cycle enforcement
+**Skills & Rules:**
+- `react-best-practices` — Rule: Use useMemo for the list rendering; ensure functional components.
+- `test-driven-development` — Rule: Red-Green-Refactor strictly required.
 
 **Prerequisites:** ...
 ```
 
 If no domain-specific skills apply, write:
 ```markdown
-**Skills:** None (only `test-driven-development` is loaded implicitly)
+**Skills & Rules:** None (only `test-driven-development` is loaded implicitly)
 ```
 
 ---
@@ -179,9 +179,9 @@ Each subtask lives in its own file (`task-NN-<kebab-name>.md`). This keeps tasks
 
 **Task Type:** Business Logic | Configuration | Documentation | Wiring | Refactor
 
-**Skills:**
-- List every `<skill-name>` the executor must load before starting this task.
-- Include domain-specific skills discovered via `find-skills` (e.g., `react-best-practices`, `flutter-add-widget-test`).
+**Skills & Rules:**
+- List every `<skill-name>` the executor must leverage.
+- **CRITICAL:** Do not just list the skill name. Extract and write down the 2-3 specific rules/conventions from that skill that apply to this task.
 - Always include `test-driven-development` if this task writes/modifies code.
 - If none beyond implicit TDD, write: `test-driven-development` (implicit)
 
@@ -192,6 +192,8 @@ Each subtask lives in its own file (`task-NN-<kebab-name>.md`). This keeps tasks
 **Blocked by:** [List task IDs that must be complete before this task can start, e.g. "T1, T2". If none, write "None — can start immediately."] 
 
 **Context for the executor:** [2–3 sentences explaining WHY this task exists and how it fits into the bigger picture. The executor has not read the rest of the plan.]
+
+**Review Level:** [Strict | Self-only] (Use 'Self-only' for mechanical/simple tasks to skip QA subagents and save tokens. Use 'Strict' for complex business logic).
 
 ## Acceptance criteria
 - [ ] [Specific, verifiable outcome — e.g., "GET /users returns 200 with a list of users"]
@@ -247,7 +249,7 @@ Commit with a descriptive message.
 ### Atomicity Rules
 
 **Every subtask must be:**
-- **Small**: 2–10 minutes of work for a skilled developer. If it takes longer, split it.
+- **Cohesive**: 15–30 minutes of work for a skilled developer. Avoid hyper-fragmented tasks (like 2-minute tasks) as they waste tokens in agent coordination. Group related functions and tests together.
 - **Self-contained**: Contains ALL code, commands, file paths, and context needed. The executor must never need to look at another subtask to understand what to do.
 - **Deterministic**: Exact inputs, exact expected outputs, exact commands. No ambiguity.
 - **Reviewable**: When the subagent says "done," you can verify it by running one command or checking one file.
@@ -268,13 +270,10 @@ Commit with a descriptive message.
 > T1: "Implement the user authentication module"
 > T2: "Write tests for authentication"
 
-### Good (atomic, self-contained)
-> T1: "Create `User` model with `username` and `password_hash` fields"  
-> T2: "Write `hash_password(password)` utility using bcrypt"  
-> T3: "Implement `create_user(username, password)` service function"  
-> T4: "Write unit tests for `create_user` (happy path + duplicate username)"  
-> T5: "Implement `authenticate_user(username, password)` service function"  
-> T6: "Write unit tests for `authenticate_user` (valid/invalid credentials)"
+### Good (cohesive, self-contained, token-efficient)
+> T1: "Implement `User` model and `hash_password(password)` utility using bcrypt (with tests)"
+> T2: "Implement `create_user` service function with duplicate handling (with tests)"
+> T3: "Implement `authenticate_user` service function with credential validation (with tests)"
 
 ---
 

@@ -9,9 +9,9 @@ Execute plan by dispatching fresh subagent per task, with two-stage review after
 
 **Why subagents:** You delegate tasks to specialized agents with isolated context. By precisely crafting their instructions and context, you ensure they stay focused and succeed at their task. They should never inherit your session's context or history — you construct exactly what they need. This also preserves your own context for coordination work.
 
-**Core principle:** Fresh subagent per task + two-stage review (spec then quality) = high quality, fast iteration
+**Core principle:** Fresh subagent per task + unified QA review = high quality, fast iteration, token efficiency.
 
-**Continuous execution:** Do not pause to check in with your human partner between tasks. Execute all tasks from the plan without stopping. The only reasons to stop are: BLOCKED status you cannot resolve, ambiguity that genuinely prevents progress, or all tasks complete. "Should I continue?" prompts and progress summaries waste their time — they asked you to execute the plan, so execute it.
+**Continuous execution:** Do not pause to check in with your human partner between tasks. Execute all tasks from the plan without stopping. Maintain progress updates silently in a background `status.md` file rather than outputting verbose logs to the chat. The only reasons to stop are: BLOCKED status you cannot resolve, ambiguity that genuinely prevents progress, or all tasks complete.
 
 ## When to Use
 
@@ -40,7 +40,7 @@ digraph when_to_use {
 |--------|----------------------------|-----------------|
 | Session | Same session | Parallel session or no subagents |
 | Agents | Fresh subagent per task | Inline (you execute) |
-| Review | Two-stage per task (spec → quality) | Checkpoints at your discretion |
+| Review | Unified QA review per task (if Strict) | Checkpoints at your discretion |
 | Speed | Faster iteration, no human-in-loop | Human-in-loop, context preserved |
 | Best for | Independent tasks, subagent support | Tightly coupled tasks, no subagent support |
 
@@ -52,47 +52,43 @@ digraph process {
 
     "Validate worktree (using-git-worktrees)" [shape=box];
     "Run find-skills for domain discovery" [shape=box];
-    "Read plan.md (Macro Plan), then read each task-NN-*.md file for full text + Skills annotations" [shape=box];
+    "Read plan.md (Macro Plan ONLY)" [shape=box];
 
     subgraph cluster_per_task {
         label="Per Task";
+        "LAZY LOAD: Read current task-NN-*.md file" [shape=box];
         "Dispatch implementer subagent (./implementer-prompt.md)" [shape=box];
         "Implementer subagent asks questions?" [shape=diamond];
         "Answer questions, provide context" [shape=box];
         "Implementer subagent implements, tests, commits, self-reviews" [shape=box];
-        "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" [shape=box];
-        "Spec reviewer subagent confirms code matches spec?" [shape=diamond];
-        "Implementer subagent fixes spec gaps" [shape=box];
-        "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [shape=box];
-        "Code quality reviewer subagent approves?" [shape=diamond];
-        "Implementer subagent fixes quality issues" [shape=box];
-        "Mark task complete in TodoWrite" [shape=box];
+        "Review Level: Strict?" [shape=diamond];
+        "Dispatch unified QA reviewer subagent" [shape=box];
+        "QA reviewer subagent approves?" [shape=diamond];
+        "Implementer subagent fixes issues" [shape=box];
+        "Silently log completion to status.md" [shape=box];
     }
 
     "More tasks remain?" [shape=diamond];
-    "Dispatch final code reviewer subagent for entire implementation" [shape=box];
     "Use finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
 
     "Validate worktree (using-git-worktrees)" -> "Run find-skills for domain discovery";
-    "Run find-skills for domain discovery" -> "Read plan.md (Macro Plan), then read each task-NN-*.md file for full text + Skills annotations";
-    "Read plan, extract all tasks with full text + Skills annotations, create TodoWrite" -> "Dispatch implementer subagent (./implementer-prompt.md)";
+    "Run find-skills for domain discovery" -> "Read plan.md (Macro Plan ONLY)";
+    "Read plan.md (Macro Plan ONLY)" -> "LAZY LOAD: Read current task-NN-*.md file";
+    "LAZY LOAD: Read current task-NN-*.md file" -> "Dispatch implementer subagent (./implementer-prompt.md)";
     "Dispatch implementer subagent (./implementer-prompt.md)" -> "Implementer subagent asks questions?";
     "Implementer subagent asks questions?" -> "Answer questions, provide context" [label="yes"];
     "Answer questions, provide context" -> "Dispatch implementer subagent (./implementer-prompt.md)";
     "Implementer subagent asks questions?" -> "Implementer subagent implements, tests, commits, self-reviews" [label="no"];
-    "Implementer subagent implements, tests, commits, self-reviews" -> "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)";
-    "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" -> "Spec reviewer subagent confirms code matches spec?";
-    "Spec reviewer subagent confirms code matches spec?" -> "Implementer subagent fixes spec gaps" [label="no"];
-    "Implementer subagent fixes spec gaps" -> "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" [label="re-review"];
-    "Spec reviewer subagent confirms code matches spec?" -> "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [label="yes"];
-    "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" -> "Code quality reviewer subagent approves?";
-    "Code quality reviewer subagent approves?" -> "Implementer subagent fixes quality issues" [label="no"];
-    "Implementer subagent fixes quality issues" -> "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [label="re-review"];
-    "Code quality reviewer subagent approves?" -> "Mark task complete in TodoWrite" [label="yes"];
-    "Mark task complete in TodoWrite" -> "More tasks remain?";
-    "More tasks remain?" -> "Dispatch implementer subagent (./implementer-prompt.md)" [label="yes"];
-    "More tasks remain?" -> "Dispatch final code reviewer subagent for entire implementation" [label="no"];
-    "Dispatch final code reviewer subagent for entire implementation" -> "Use finishing-a-development-branch";
+    "Implementer subagent implements, tests, commits, self-reviews" -> "Review Level: Strict?";
+    "Review Level: Strict?" -> "Silently log completion to status.md" [label="no (Self-only)"];
+    "Review Level: Strict?" -> "Dispatch unified QA reviewer subagent" [label="yes"];
+    "Dispatch unified QA reviewer subagent" -> "QA reviewer subagent approves?";
+    "QA reviewer subagent approves?" -> "Implementer subagent fixes issues" [label="no"];
+    "Implementer subagent fixes issues" -> "Dispatch unified QA reviewer subagent" [label="re-review"];
+    "QA reviewer subagent approves?" -> "Silently log completion to status.md" [label="yes"];
+    "Silently log completion to status.md" -> "More tasks remain?";
+    "More tasks remain?" -> "LAZY LOAD: Read current task-NN-*.md file" [label="yes"];
+    "More tasks remain?" -> "Use finishing-a-development-branch" [label="no"];
 }
 ```
 
@@ -132,12 +128,11 @@ Implementer subagents report one of four statuses. Handle each appropriately:
 ## Prompt Templates
 
 - `./implementer-prompt.md` - Dispatch implementer subagent
-- `./spec-reviewer-prompt.md` - Dispatch spec compliance reviewer subagent
-- `./code-quality-reviewer-prompt.md` - Dispatch code quality reviewer subagent
+- `./qa-reviewer-prompt.md` - Dispatch unified QA reviewer subagent (checks both spec compliance and code quality)
 
 ### Visual Mock Reference
 
-When a task includes `**Visual Reference:**`, the controller MUST include the mock content (or a clear description of the referenced section) in the implementer prompt. The implementer should treat the mock as part of the spec. The spec reviewer MUST verify that the implemented output matches the mock's structure, layout, and styling.
+When a task includes `**Visual Reference:**`, the controller MUST include the mock content (or a clear description of the referenced section) in the implementer prompt. The implementer should treat the mock as part of the spec. The QA reviewer MUST verify that the implemented output matches the mock's structure, layout, and styling.
 
 ## Example Workflow
 
@@ -147,14 +142,13 @@ You: I'm using Subagent-Driven Development to execute this plan.
 [Validate worktree using using-git-worktrees]
 [Run find-skills to discover domain-specific skills]
 [Read plan.md once: docs/plans/YYYY-MM-DD-feature/plan.md]
-[Read each task-NN-*.md file to extract full text, context, AND **Skills:** annotations]
-[Create TodoWrite with all tasks]
+[Create TodoWrite with tasks]
 
 Task 1: Hook installation script
 
-[Read task-01-*.md file contents, context, and **Skills:** annotations]
-[Include Skills annotations in implementer prompt so subagent loads them]
-[Dispatch implementation subagent with full task file text + context + Skills list]
+[LAZY LOAD: Read task-01-*.md file contents, context, and **Skills & Rules:** annotations]
+[Include Skills & Rules in implementer prompt so subagent loads them]
+[Dispatch implementation subagent with full task file text + context + Skills & Rules list]
 
 Implementer: "Before I begin - should the hook be installed at user or system level?"
 
@@ -167,19 +161,16 @@ Implementer: "Got it. Implementing now..."
   - Self-review: Found I missed --force flag, added it
   - Committed
 
-[Dispatch spec compliance reviewer]
-Spec reviewer: ✅ Spec compliant - all requirements met, nothing extra
+[Dispatch unified QA reviewer]
+QA Reviewer: ✅ Spec compliant and Code Quality approved. No issues.
 
-[Get git SHAs, dispatch code quality reviewer]
-Code reviewer: Strengths: Good test coverage, clean. Issues: None. Approved.
-
-[Mark Task 1 complete]
+[Silently log completion to status.md]
 
 Task 2: Recovery modes
 
-[Read task-02-*.md file contents, context, and **Skills:** annotations]
-[Include Skills annotations in implementer prompt so subagent loads them]
-[Dispatch implementation subagent with full task file text + context + Skills list]
+[LAZY LOAD: Read task-02-*.md file contents, context, and **Skills & Rules:** annotations]
+[Include Skills & Rules in implementer prompt so subagent loads them]
+[Dispatch implementation subagent with full task file text + context + Skills & Rules list]
 
 Implementer: [No questions, proceeds]
 Implementer:
@@ -188,33 +179,24 @@ Implementer:
   - Self-review: All good
   - Committed
 
-[Dispatch spec compliance reviewer]
-Spec reviewer: ❌ Issues:
-  - Missing: Progress reporting (spec says "report every 100 items")
-  - Extra: Added --json flag (not requested)
+[Dispatch unified QA reviewer]
+QA Reviewer: ❌ Issues:
+  - Spec: Missing progress reporting (spec says "report every 100 items")
+  - Spec: Extra --json flag added (not requested)
+  - Quality: Magic number (100) used directly in code
 
 [Implementer fixes issues]
-Implementer: Removed --json flag, added progress reporting
+Implementer: Removed --json flag, added progress reporting, extracted PROGRESS_INTERVAL constant
 
-[Spec reviewer reviews again]
-Spec reviewer: ✅ Spec compliant now
+[QA Reviewer reviews again]
+QA Reviewer: ✅ Spec compliant and Code Quality approved. No issues.
 
-[Dispatch code quality reviewer]
-Code reviewer: Strengths: Solid. Issues (Important): Magic number (100)
-
-[Implementer fixes]
-Implementer: Extracted PROGRESS_INTERVAL constant
-
-[Code reviewer reviews again]
-Code reviewer: ✅ Approved
-
-[Mark Task 2 complete]
+[Silently log completion to status.md]
 
 ...
 
 [After all tasks]
-[Dispatch final code-reviewer]
-Final reviewer: All requirements met, ready to merge
+Done!
 
 Done!
 ```
@@ -240,7 +222,7 @@ Done!
 
 **Quality gates:**
 - Self-review catches issues before handoff
-- Two-stage review: spec compliance, then code quality
+- Unified QA review: spec compliance + code quality together
 - Review loops ensure fixes actually work
 - Spec compliance prevents over/under-building
 - Code quality ensures implementation is well-built
@@ -261,11 +243,10 @@ Done!
 - Make subagent read task files from disk (provide full file contents in the prompt instead)
 - Skip scene-setting context (subagent needs to understand where task fits)
 - Ignore subagent questions (answer before letting them proceed)
-- Accept "close enough" on spec compliance (spec reviewer found issues = not done)
-- Skip review loops (reviewer found issues = implementer fixes = review again)
-- Let implementer self-review replace actual review (both are needed)
-- **Start code quality review before spec compliance is ✅** (wrong order)
-- Move to next task while either review has open issues
+- Accept "close enough" on spec compliance (QA reviewer found issues = not done)
+- Skip review loops (QA reviewer found issues = implementer fixes = review again)
+- Let implementer self-review replace actual review (unless task was explicitly marked Self-only)
+- Move to next task while QA review has open issues
 
 **If subagent asks questions:**
 - Answer clearly and completely
@@ -293,6 +274,7 @@ Done!
 - **verification-before-completion** - Subagents must verify before claiming DONE
 
 **Subagents MUST use:**
+- **extreme-brevity** - Subagents MUST communicate using caveman style to prevent context window bloat for the controller agent.
 - **test-driven-development** - TDD is mandatory, not optional, for every task
 
 **Alternative workflow:**
