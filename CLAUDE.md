@@ -51,7 +51,12 @@ description: Use when [specific triggering conditions and symptoms]
 1. Create `skills/<name>/SKILL.md` following the structure above.
 2. Follow TDD: run a baseline scenario with a subagent *without* the skill first, document what fails, then write the skill to address those failures.
 3. Test with a subagent *with* the skill before committing.
-4. Commit and push — Claude Code and OpenCode pick up changes on next update.
+4. **CRITICAL: VERSION BUMPING**. If you modify or add skills, YOU MUST ensure the version is bumped across ALL manifest files. The repo has a `scripts/bump-version.js` script that handles this. Just making a `git commit` will automatically trigger the `pre-commit` hook to run this script and sync the following files:
+   - `plugin.json` (Antigravity/Gemini)
+   - `package.json` (OpenCode/npm)
+   - `.claude-plugin/plugin.json` (Claude Code)
+   - `.claude-plugin/marketplace.json` (Claude Marketplace)
+5. Commit and push — The `post-commit` hook will automatically create a git tag, and `git push` will push the tags so agents can pull the updates.
 
 No build step is required. Skills are plain Markdown files discovered by path.
 

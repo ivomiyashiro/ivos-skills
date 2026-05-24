@@ -7,6 +7,8 @@ const __dirname = path.dirname(__filename);
 
 const pluginPath = path.resolve(__dirname, '../plugin.json');
 const packagePath = path.resolve(__dirname, '../package.json');
+const claudePluginPath = path.resolve(__dirname, '../.claude-plugin/plugin.json');
+const claudeMarketplacePath = path.resolve(__dirname, '../.claude-plugin/marketplace.json');
 
 function bumpVersion(filePath) {
   if (!fs.existsSync(filePath)) return null;
@@ -25,3 +27,5 @@ function bumpVersion(filePath) {
 
 bumpVersion(pluginPath);
 bumpVersion(packagePath);
+bumpVersion(claudePluginPath);
+bumpVersion(claudeMarketplacePath);
