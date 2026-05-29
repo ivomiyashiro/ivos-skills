@@ -1,6 +1,6 @@
 # ivos-skills
 
-Coleccion personal de skills para agentes de IA (OpenCode, Claude Code, Copilot CLI, Gemini CLI, etc.).
+Coleccion personal de skills para agentes de IA (Codex, OpenCode, Claude Code, Copilot CLI, Gemini CLI, etc.).
 
 ## Instalacion
 
@@ -39,6 +39,22 @@ OpenCode usa su propio sistema de plugins. Instala ivos-skills por separado aunq
 3. Verifica preguntando: "List my available skills" o usa la herramienta `skill`.
 
 Para mas detalles, consulta [`.opencode/INSTALL.md`](.opencode/INSTALL.md).
+
+### Codex
+
+Codex usa su propio sistema de plugins. Instala ivos-skills por separado aunque ya lo uses en otro agente.
+
+```bash
+# Agregar el marketplace y luego instalar el plugin
+codex plugin marketplace add https://github.com/ivomiyashiro/ivos-skills.git
+codex plugin add ivos-skills@ivos-skills
+```
+
+Reinicia Codex. Todas las skills quedan disponibles automaticamente. Para actualizar:
+
+```bash
+codex plugin marketplace upgrade ivos-skills
+```
 
 ### Antigravity CLI
 
@@ -131,6 +147,19 @@ O actualiza manualmente via npm:
 npm install ivos-skills@git+https://github.com/ivomiyashiro/ivos-skills.git --prefix ~/.config/opencode
 ```
 
+### Codex (plugin)
+
+```bash
+codex plugin marketplace upgrade ivos-skills
+```
+
+Si todavia no lo instalaste:
+
+```bash
+codex plugin marketplace add https://github.com/ivomiyashiro/ivos-skills.git
+codex plugin add ivos-skills@ivos-skills
+```
+
 ### Antigravity CLI
 
 Para actualizar el plugin a la ultima version, reinstalalo ejecutando:
@@ -175,7 +204,7 @@ skills/
 ## Requisitos
 
 - [Node.js](https://nodejs.org/) (para usar `npx skills` o el plugin de OpenCode)
-- Un agente compatible con el ecosistema de skills (OpenCode, Claude Code, etc.)
+- Un agente compatible con el ecosistema de skills (Codex, OpenCode, Claude Code, etc.)
 
 ## Licencia
 

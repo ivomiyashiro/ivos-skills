@@ -56,6 +56,7 @@ description: Use when [specific triggering conditions and symptoms]
    - `package.json` (OpenCode/npm)
    - `.claude-plugin/plugin.json` (Claude Code)
    - `.claude-plugin/marketplace.json` (Claude Marketplace)
+   - `.codex-plugin/plugin.json` (Codex)
 5. Commit and push — The `post-commit` hook will automatically create a git tag, and `git push` will push the tags so agents can pull the updates.
 
 No build step is required. Skills are plain Markdown files discovered by path.

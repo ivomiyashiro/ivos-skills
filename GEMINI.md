@@ -1,6 +1,6 @@
 # Instructions for Gemini / Antigravity Agents
 
-This repository is a collection of skills (`ivos-skills`) for various AI agents (Claude Code, Antigravity/Gemini CLI, OpenCode, etc.).
+This repository is a collection of skills (`ivos-skills`) for various AI agents (Codex, Claude Code, Antigravity/Gemini CLI, OpenCode, etc.).
 
 ## ⚠️ CRITICAL: VERSION BUMPING
 
@@ -11,6 +11,7 @@ The repository uses a `pre-commit` hook that automatically increments the versio
 - `package.json`
 - `.claude-plugin/plugin.json`
 - `.claude-plugin/marketplace.json`
+- `.codex-plugin/plugin.json`
 
 **Your Workflow:**
 1. Make your changes to the `skills/` directory.

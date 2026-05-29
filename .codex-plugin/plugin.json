@@ -1,0 +1,40 @@
+{
+  "name": "ivos-skills",
+  "version": "1.1.6",
+  "description": "A collection of Codex skills for software development workflows: debugging, planning, Flutter, React, Hono/Bun APIs, Supabase, git, code review, and more.",
+  "author": {
+    "name": "Ivan Miyashiro",
+    "url": "https://github.com/ivomiyashiro"
+  },
+  "homepage": "https://github.com/ivomiyashiro/ivos-skills#readme",
+  "repository": "https://github.com/ivomiyashiro/ivos-skills",
+  "license": "MIT",
+  "keywords": [
+    "skills",
+    "codex",
+    "software-development",
+    "flutter",
+    "react",
+    "supabase",
+    "debugging",
+    "planning"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "ivos-skills",
+    "shortDescription": "Software development skills for Codex",
+    "longDescription": "A personal collection of Codex skills for software development workflows, including systematic debugging, planning, TDD, code review, Flutter, React, Hono/Bun APIs, Supabase, git workflows, and frontend design.",
+    "developerName": "Ivan Miyashiro",
+    "category": "Engineering",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/ivomiyashiro/ivos-skills",
+    "defaultPrompt": [
+      "Use the relevant ivos-skills skill for this software development task."
+    ],
+    "brandColor": "#2563EB",
+    "screenshots": []
+  }
+}

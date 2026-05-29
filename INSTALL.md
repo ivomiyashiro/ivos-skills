@@ -30,6 +30,30 @@ See [.opencode/INSTALL.md](.opencode/INSTALL.md) for OpenCode installation instr
 
 ---
 
+## Codex
+
+### Install (one time)
+
+```bash
+# 1. Add ivos-skills as a marketplace source
+codex plugin marketplace add https://github.com/ivomiyashiro/ivos-skills.git
+
+# 2. Install the plugin
+codex plugin add ivos-skills@ivos-skills
+```
+
+Then restart Codex. All skills are available automatically.
+
+### Keep up to date
+
+```bash
+codex plugin marketplace upgrade ivos-skills
+```
+
+Codex tracks the configured marketplace and refreshes the git snapshot when upgraded.
+
+---
+
 ## Antigravity CLI
 
 ### Install
@@ -45,4 +69,3 @@ Then restart `agy`. All skills are available automatically.
 ```bash
 agy plugin uninstall ivos-skills
 ```
-

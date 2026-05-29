@@ -1,0 +1,20 @@
+{
+  "name": "ivos-skills",
+  "interface": {
+    "displayName": "ivos-skills"
+  },
+  "plugins": [
+    {
+      "name": "ivos-skills",
+      "source": {
+        "source": "local",
+        "path": "./plugins/ivos-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Engineering"
+    }
+  ]
+}
