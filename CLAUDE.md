@@ -77,6 +77,7 @@ Requires Graphviz (`dot` on PATH).
 | Agent | Integration | Update command |
 |-------|-------------|----------------|
 | Claude Code | `.claude-plugin/` | `claude plugins update ivos-skills` |
+| Codex | `.codex-plugin/plugin.json` + `plugins/ivos-skills/plugin.json` (marketplace) | `codex plugin marketplace upgrade ivos-skills` |
 | OpenCode | `.opencode/plugins/ivos-skills.js` injects `skills/` path into config | Change pinned tag in `opencode.json`, restart |
 | Skills CLI | `package.json` + `skills/` directory | `npx skills update ivos-skills -g` |
 | Antigravity CLI | `plugin.json` | `agy plugin uninstall ivos-skills` followed by `agy plugin install https://github.com/ivomiyashiro/ivos-skills.git` |

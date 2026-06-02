@@ -10,6 +10,7 @@ const packagePath = path.resolve(__dirname, '../package.json');
 const claudePluginPath = path.resolve(__dirname, '../.claude-plugin/plugin.json');
 const claudeMarketplacePath = path.resolve(__dirname, '../.claude-plugin/marketplace.json');
 const codexPluginPath = path.resolve(__dirname, '../.codex-plugin/plugin.json');
+const codexMarketplacePluginPath = path.resolve(__dirname, '../plugins/ivos-skills/plugin.json');
 
 function bumpVersion(filePath) {
   if (!fs.existsSync(filePath)) return null;
@@ -31,3 +32,4 @@ bumpVersion(packagePath);
 bumpVersion(claudePluginPath);
 bumpVersion(claudeMarketplacePath);
 bumpVersion(codexPluginPath);
+bumpVersion(codexMarketplacePluginPath);
