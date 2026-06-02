@@ -2,7 +2,7 @@ import { EventEmitter } from 'node:events';
 
 /**
  * DomainEvent — todos los eventos del dominio se modelan así.
- * `type` es el discriminante; `payload` lo definen los features.
+ * `type` es el discriminante; `payload` lo definen los modulos.
  */
 export type DomainEvent<TType extends string = string, TPayload = unknown> = {
   type: TType;

@@ -3,7 +3,7 @@
 ## Principios
 
 1. **Zod en TODO borde HTTP** (json, query, param).
-2. **Schemas co-localizados** con el feature (`schemas.ts`).
+2. **Schemas co-localizados** con el modulo (`<module>.schemas.ts`).
 3. **El mismo schema** valida y genera OpenAPI.
 4. **`z.infer<typeof Schema>`** para el tipo TS — nunca duplicar.
 
@@ -164,7 +164,7 @@ export const Cursor = z.string().uuid().optional();
 export const Limit = z.coerce.number().int().min(1).max(100).default(20);
 ```
 
-Y en cada feature:
+Y en cada modulo:
 
 ```ts
 import { Uuid, Limit } from '@shared/zod/common';

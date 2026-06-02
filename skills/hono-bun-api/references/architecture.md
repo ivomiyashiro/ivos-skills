@@ -1,94 +1,101 @@
-# Arquitectura: Vertical Slice + CQRS Lite
+# Arquitectura: Modular Monolith + CQRS Lite
 
-## Por qué vertical slice
+## Modelo Mental
 
-En arquitectura **layered** (controllers/services/repositories/...), agregar un feature
-toca múltiples carpetas y los archivos relacionados quedan dispersos. Cada feature
-arrastra un poco de cada capa, y el blast radius crece linealmente con la cantidad de
-features.
+Usar un monolito modular con limites de dominio claros:
 
-En **vertical slice**, cada feature es una carpeta autocontenida. Para implementar
-"crear quote" abrís `features/quotes/commands/create-quote.ts` y todo lo que necesitás
-está ahí o en `shared/`. Los slices son independientes — podés eliminar uno
-borrando una carpeta.
+```txt
+HTTP / API
+  -> Application
+  -> Domain
+  -> Infrastructure
+  -> Database / Supabase / external services
+```
+
+El monolito modular mantiene deploy simple y permite extraer un modulo a servicio
+separado si el producto lo justifica. No diseñar microservicios antes de que haya
+presion real de escala, ownership o aislamiento operacional.
+
+## Por Qué No Vertical Slice Plano
+
+Un vertical slice plano funciona bien para APIs chicas, pero en dominios que crecen
+termina mezclando reglas, SQL, schemas y routing dentro del mismo nivel. La variante
+recomendada es **vertical por modulo, layered por dentro**:
+
+```txt
+modules/projects/
+  projects.routes.ts
+  projects.controller.ts
+  application/
+  domain/
+  infrastructure/
+```
+
+La navegacion queda clara:
+- Endpoint: `*.routes.ts` / `*.controller.ts`
+- Caso de uso: `application/handlers`
+- Regla de negocio: `domain`
+- SQL/adapters: `infrastructure`
 
 ## CQRS Lite
 
-**Lite** porque:
-- Hay separación entre **comandos** (mutan estado) y **queries** (leen).
-- No hay event sourcing.
-- No hay un read model separado físicamente (mismo DB, mismas tablas).
-- Sí hay shapes distintos: comandos usan `CommandDeps` con repositorio; queries usan
-  `ReadContext` y leen directo.
+Lite significa:
+- misma base de datos para reads y writes
+- sin event sourcing por default
+- sin proyecciones async obligatorias
+- separation conceptual entre commands y queries
+- writes pasan por dominio/repositorios cuando hay invariantes
+- reads pueden usar Drizzle directo y DTOs especificos
 
-**Por qué no full CQRS:** event sourcing y read models separados imponen costo
-operacional (proyecciones, sincronización, eventual consistency). Pago solo cuando
-hay justificación clara (performance read >> write, auditoría inmutable, etc.).
+No agregar full CQRS salvo que haya una razon fuerte: auditoria inmutable, read load
+extremo, proyecciones complejas o equipos con ownership separado.
 
-## Dirección de dependencias
+## Direccion De Dependencias
 
-```
-features/<X>/  →  shared/
-features/<X>/  ↛  features/<Y>/         (PROHIBIDO)
-shared/        ↛  features/<X>/         (PROHIBIDO)
-```
-
-- Cualquier feature puede importar de `shared/`.
-- **Ningún** feature importa de otro feature.
-- `shared/` jamás importa de un feature.
-
-Si dos features necesitan coordinarse:
-1. **Domain events.** Feature A emite evento `XHappened`; feature B se suscribe en boot.
-2. **Read-side join.** Una query de A puede joinear contra tablas de B; eso vive
-   en el query handler y no rompe la regla (no importa código de B, lee SQL).
-3. **Extraer a `shared/`.** Si el concepto es genuinamente cross-cutting (clock,
-   logger, errores comunes), va a `shared/`.
-
-## Anatomía de un slice
-
-```
-features/quotes/
-  commands/                # Write side
-    create-quote.ts        # 1 archivo = 1 caso de uso
-    update-quote.ts
-  queries/                 # Read side
-    get-quote-by-id.ts
-    list-quotes.ts
-  repository.ts            # Solo escrituras
-  read-context.ts          # Tipado y builder del read context
-  schemas.ts               # Zod + DTOs
-  events.ts                # Domain events que emite este feature
-  routes.ts                # Hono router que compone todo
-  routes.test.ts           # Integration tests
+```txt
+modules/<x>/controller      -> application
+modules/<x>/application     -> domain + shared abstractions
+modules/<x>/domain          -> shared primitives only
+modules/<x>/infrastructure  -> domain interfaces + shared db/adapters
+shared/                     -> no importa modules
 ```
 
-## Reglas inflexibles
+Reglas:
+- `domain/` no importa Hono, Drizzle, Supabase, Bun ni logger concreto.
+- `application/` no importa Hono. Puede depender de interfaces/adapters.
+- `infrastructure/` implementa detalles tecnicos.
+- Controllers son adapters HTTP y pueden importar Hono/Zod/shared HTTP helpers.
+- Un modulo no importa internals de otro modulo.
 
-1. Una carpeta `features/<X>/` = un agregado o un bounded context pequeño.
-2. Si un feature tiene más de ~8 archivos en commands+queries, considerá dividirlo.
-3. Los nombres de archivos son **kebab-case verbo-sustantivo**:
-   `create-quote.ts`, `get-quote-by-id.ts`, `list-quotes.ts`.
-4. `commands/` y `queries/` son **carpetas separadas** aunque tengan 1 archivo cada una.
-   Sirve como semáforo visual para el lector.
-5. `routes.ts` es plumbing: NO debe contener lógica de negocio. Solo arma
-   `deps`/`ctx`, invoca handler, mapea Result a HTTP.
+## Coordinacion Entre Modulos
 
-## Por qué funciones, no clases
+Preferir:
+1. Domain/application events para reaccionar a cambios.
+2. Queries read-side con joins SQL cuando solo se necesita leer.
+3. Servicios compartidos en `shared/` solo si son genuinamente cross-cutting.
+4. API interna/externa si el modulo fue extraido a otro servicio.
 
-- **Composición trivial:** un handler es `(deps, input) => Promise<Result>`. Mockear
-  es solo construir el record `deps`. No `Mock<IQuoteService>`, no DI container.
-- **Closures como constructor:** `createQuotesRepo(db) => { findById, save }`. El
-  estado del "objeto" es el `db` capturado.
-- **Composición de middlewares funcional:** Hono ya es funcional; no hay impedancia
-  con OOP.
-- **Tree-shaking:** importar `createQuoteHandler` no arrastra el resto del módulo.
-- **Tests más rápidos:** sin reflexión, sin contenedor, sin proxies.
+Evitar import directo de `modules/A/domain` desde `modules/B`. Eso crea acoplamiento
+oculto y hace mas dificil extraer o testear modulos.
 
-## Alternativas consideradas y rechazadas
+## Reglas De Diseno
 
-- **Layered (controllers/services/repos):** rechazado por dispersión.
-- **DDD heavy con aggregates/value objects/domain services:** rechazado por overkill.
-  Si un feature necesita DDD denso, se aplica adentro del slice sin contaminar el resto.
-- **Class-based services con un DI container (tsyringe, awilix):** rechazado.
-  Factory + closures cubre el caso 90% sin la complejidad.
-- **Event sourcing:** rechazado por costo. Opt-in si un feature lo justifica.
+1. Una carpeta `modules/<name>/` representa un bounded context chico o feature area.
+2. Dividir el modulo cuando sus casos de uso no comparten lenguaje ni invariantes.
+3. Mantener controllers finos: parse/validacion/contexto/result HTTP.
+4. Mantener application handlers como casos de uso ejecutables desde HTTP, jobs o tests.
+5. Poner invariantes en entities/policies/value objects, no en controllers.
+6. Usar repositorios solo para agregados/write-side.
+7. Usar read models/query handlers para listados, dashboards, search y reports.
+8. Mantener transacciones explicitas en writes criticas.
+
+## Anti-Patrones
+
+- Controllers con reglas de negocio.
+- `UserService` o `ProjectService` con decenas de metodos inconexos.
+- Repositorios universales con `findAll`, `search`, `stats`, `dashboard`.
+- Dominio importando `drizzle-orm`, `Context` de Hono o SDK de Supabase.
+- Application llamando `c.req` o devolviendo `Response`.
+- RLS como unica autorizacion backend.
+- Offset pagination en tablas grandes.
+- Side effects externos dentro de la transaccion/request principal sin outbox.

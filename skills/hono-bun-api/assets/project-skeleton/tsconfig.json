@@ -23,7 +23,7 @@
     "paths": {
       "@/*": ["./src/*"],
       "@shared/*": ["./src/shared/*"],
-      "@features/*": ["./src/features/*"],
+      "@modules/*": ["./src/modules/*"],
       "@test/*": ["./test/*"]
     }
   },

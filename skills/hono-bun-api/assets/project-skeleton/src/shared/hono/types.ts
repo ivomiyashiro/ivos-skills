@@ -29,8 +29,8 @@ export type AppEnv = {
 };
 
 /**
- * ReadContext — lo que reciben los query handlers.
- * Construido desde c.var en cada ruta de query.
+ * ReadContext — disponible si una query handler elige recibir db raw.
+ * En modulos grandes, preferir un read model en infrastructure.
  */
 export type ReadContext = {
   db: Db;

@@ -1,196 +1,90 @@
-# Domain Events in-process
+# Domain Events Y Outbox
 
-## Modelo
+Usar eventos para comunicar hechos entre modulos y para disparar side effects sin
+acoplar commands a proveedores externos.
+
+## Domain Event
 
 ```ts
-// shared/events/event-bus.ts
 export type DomainEvent<TType extends string = string, TPayload = unknown> = {
+  id: string;
   type: TType;
   payload: TPayload;
   occurredAt: Date;
 };
-
-export const createEventBus = () => {
-  const emitter = new EventEmitter();
-  return {
-    publish: (event: DomainEvent) => emitter.emit(event.type, event),
-    publishMany: (events: DomainEvent[]) => {
-      for (const e of events) emitter.emit(e.type, e);
-    },
-    on: <E extends DomainEvent>(type: E['type'], handler: (e: E) => void | Promise<void>) =>
-      emitter.on(type, handler as any),
-    off: ...
-  };
-};
 ```
 
-Wrap de `EventEmitter`. **In-process** — no atraviesa réplicas, no es durable.
+Eventos nombran hechos pasados:
+- `ProjectCreated`
+- `MemberInvited`
+- `SubscriptionCancelled`
 
-## Definir eventos del feature
+No nombrar eventos como comandos (`SendEmail`, `SyncStripe`).
 
-```ts
-// features/quotes/events.ts
-import type { DomainEvent } from '@shared/events/event-bus';
+## En Domain
 
-export type QuoteCreated = DomainEvent<
-  'QuoteCreated',
-  { id: string; customerId: string; total: number }
->;
-
-export type QuoteCancelled = DomainEvent<
-  'QuoteCancelled',
-  { id: string; reason: string }
->;
-
-export type QuoteEvent = QuoteCreated | QuoteCancelled;
-```
-
-## Emitir desde un command
+Entities pueden acumular eventos:
 
 ```ts
-// commands/create-quote.ts
-import type { QuoteCreated } from '../events';
+export class Project {
+  private events: DomainEvent[] = [];
 
-export const createQuoteHandler = async (deps, input) => {
-  const id = crypto.randomUUID();
-  await deps.repo.save({ id, /* ... */ });
-
-  const event: QuoteCreated = {
-    type: 'QuoteCreated',
-    payload: { id, customerId: input.customerId, total: input.total },
-    occurredAt: deps.clock.now(),
-  };
-  deps.eventBus.publish(event);
-
-  return success(toDto(...));
-};
-```
-
-## Patrón: pending events + flush post-commit
-
-Si el command tiene transacción, NO publicar dentro de la tx (si la tx hace rollback,
-el evento ya se fue). Acumular y emitir después:
-
-```ts
-export const transferHandler = async (deps, input) => {
-  const pendingEvents: DomainEvent[] = [];
-
-  await withTransaction(deps.db, async (tx) => {
-    const repo = createQuotesRepo(tx);
-    await repo.save(updatedFrom);
-    await repo.save(updatedTo);
-    pendingEvents.push({ type: 'QuoteTransferred', payload: { from, to }, occurredAt });
-  });
-
-  // Solo después del commit exitoso
-  deps.eventBus.publishMany(pendingEvents);
-
-  return success(...);
-};
-```
-
-## Suscribir handlers en boot
-
-```ts
-// server.ts (o un módulo separado)
-import { createEventBus } from '@shared/events/event-bus';
-import { sendQuoteEmailOnCreated } from '@features/notifications/handlers';
-
-const eventBus = createEventBus();
-
-eventBus.on<QuoteCreated>('QuoteCreated', async (event) => {
-  await sendQuoteEmailOnCreated(event.payload);
-});
-
-eventBus.on<QuoteCancelled>('QuoteCancelled', async (event) => {
-  logger.info({ event }, 'quote cancelled');
-});
-```
-
-Los suscriptores corren **dentro del mismo proceso**. Si tirran, el flujo del comando
-sigue (publish es fire-and-forget en EventEmitter).
-
-## Error handling en suscriptores
-
-EventEmitter no atrapa errores async. Wrap:
-
-```ts
-eventBus.on('QuoteCreated', async (event) => {
-  try {
-    await sendEmail(event);
-  } catch (err) {
-    logger.error({ err, event }, 'event handler failed');
-    // opcional: outbox de retry, dead letter
+  static create(input: CreateProjectInput) {
+    const project = new Project(...);
+    project.events.push({
+      id: crypto.randomUUID(),
+      type: 'ProjectCreated',
+      payload: { projectId: project.id },
+      occurredAt: input.now,
+    });
+    return project;
   }
-});
-```
 
-## Limitaciones del bus in-process
-
-| Limitación | Implicancia |
-|---|---|
-| No durable | Si el proceso crashea entre publish y handler, el evento se pierde. |
-| No cross-replica | El handler de "send email" en réplica A no recibe events de réplica B. |
-| Sin retry | Si el handler falla, no se reintenta solo. |
-
-Para casos donde estos importan, evolucionar a **outbox pattern** (siguiente sección).
-
-## Outbox pattern (cuando hace falta durabilidad)
-
-```ts
-// shared/events/outbox.ts
-type OutboxEntry = {
-  id: string;
-  type: string;
-  payload: unknown;
-  occurredAt: Date;
-  processedAt: Date | null;
-};
-
-// Dentro de la misma tx que el cambio de dominio:
-await tx.insert(outboxEntries).values({
-  id: crypto.randomUUID(),
-  type: 'QuoteCreated',
-  payload: { id, customerId },
-  occurredAt: now,
-  processedAt: null,
-});
-```
-
-Un worker separado (proceso o cron) lee `outbox WHERE processed_at IS NULL ORDER BY occurredAt`,
-los procesa (incluyendo publish a un broker externo), y los marca como procesados.
-
-**Pros:** durabilidad atómica con el cambio de dominio, retry trivial.
-**Cons:** complejidad operacional, latencia mayor.
-
-Cuándo migrar a outbox:
-- Necesitás que un evento llegue a un sistema externo (mail, broker).
-- Necesitás replay para reconstrucción de proyecciones.
-- Reliability > latencia.
-
-## Tipado fuerte de suscriptores
-
-Si querés que `eventBus.on('QuoteCreated', handler)` infiera el shape del payload:
-
-```ts
-declare module '@shared/events/event-bus' {
-  interface EventMap {
-    QuoteCreated: QuoteCreated;
-    QuoteCancelled: QuoteCancelled;
+  pullEvents() {
+    const events = this.events;
+    this.events = [];
+    return events;
   }
 }
 ```
 
-Y declarar `EventMap` en el bus con TS generics. Es opcional — el patrón sin esto
-funciona con cast explícito.
+## Publicacion Post-Commit
 
-## Anti-patrones
+Para eventos in-process no durables:
 
-- ❌ Publicar antes de persistir. Si la persistencia falla, el evento ya se fue.
-- ❌ Publicar dentro de la tx. Si la tx hace rollback, el evento sale igual.
-- ❌ Dependencias circulares: feature A suscribe a B, B suscribe a A. Repensar
-  el flujo.
-- ❌ Eventos con payloads enormes (objetos completos). Que el payload tenga solo
-  IDs y datos esenciales; el suscriptor lee lo que necesita.
-- ❌ Confiar en orden de suscriptores. EventEmitter ejecuta en orden de registro,
-  pero no debería ser relevante.
+```ts
+const events: DomainEvent[] = [];
+
+await tx.run(async () => {
+  await repo.save(project);
+  events.push(...project.pullEvents());
+});
+
+eventBus.publishMany(events);
+```
+
+No publicar dentro de una transaccion que puede hacer rollback.
+
+## Outbox
+
+Para emails, webhooks, notificaciones, analytics o brokers externos, preferir outbox.
+Guardar evento en la misma transaccion que el cambio de dominio:
+
+```ts
+await tx.run(async (db) => {
+  await projectRepo.save(project);
+  await outbox.add(db, project.pullEvents());
+});
+```
+
+Un worker separado procesa `outbox_events`, reintenta y marca como procesado.
+
+Ver `references/outbox.md` para el esquema recomendado.
+
+## Anti-Patrones
+
+- side effects externos dentro del request critico sin retry
+- publicar evento antes de persistir
+- eventos con payloads enormes
+- ciclos entre modulos por eventos
+- depender del orden de handlers de eventos

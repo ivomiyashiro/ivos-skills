@@ -1,0 +1,7 @@
+import type { __Module__ } from './__module__.entity';
+
+export interface __Module__Repository {
+  findById(id: string): Promise<__Module__ | null>;
+  save(entity: __Module__): Promise<void>;
+  delete(id: string): Promise<void>;
+}

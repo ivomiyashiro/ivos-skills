@@ -1,0 +1,21 @@
+import { failure, success, type Result } from '@shared/result';
+import { notFound, type AppError } from '@shared/errors/app-error';
+import type { __Module__ReadModel } from '../../infrastructure/__module__-read-model';
+import type { __Module__Dto } from '../../__modules__.schemas';
+import type { Get__Module__ByIdQuery } from '../queries/get-__module__-by-id.query';
+
+export type Get__Module__ByIdDeps = {
+  readModel: __Module__ReadModel;
+};
+
+export const get__Module__ByIdHandler = async (
+  deps: Get__Module__ByIdDeps,
+  query: Get__Module__ByIdQuery,
+): Promise<Result<__Module__Dto, AppError>> => {
+  void query.actorId;
+
+  const entity = await deps.readModel.getById(query.id);
+  if (!entity) return failure(notFound('__Module__', query.id));
+
+  return success(entity);
+};

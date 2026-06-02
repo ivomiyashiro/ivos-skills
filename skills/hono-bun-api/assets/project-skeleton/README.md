@@ -1,14 +1,15 @@
 # API (Hono + Bun)
 
-API opinada en TypeScript con vertical slice + CQRS lite. Scaffold del skill
+API opinada en TypeScript con modular monolith + CQRS lite. Scaffold del skill
 `hono-bun-api`.
 
 ## Stack
 
-- **Bun** ≥ 1.1 (runtime, test, package manager)
+- **Bun** >= 1.1 (runtime, test, package manager)
 - **Hono 4** + `@hono/zod-openapi` + Scalar UI
-- **Zod 3** (validación + OpenAPI)
+- **Zod 3** (validacion + OpenAPI)
 - **Drizzle ORM** + postgres.js
+- **Supabase Auth** opcional via JWT
 - **Pino** (structured logs)
 - **prom-client** (`/metrics`)
 
@@ -30,58 +31,63 @@ bun run dev
 
 ## Auth (Supabase)
 
-El skeleton trae `src/shared/auth/supabase.ts` con `createSupabaseVerify` listo
-para usar. En `src/app.ts` se conecta automáticamente si `SUPABASE_JWT_SECRET`
-está definido:
+`src/shared/auth/supabase.ts` trae `createSupabaseVerify`. En `src/app.ts` se
+conecta automaticamente si `SUPABASE_JWT_SECRET` esta definido.
 
-1. Crear proyecto en Supabase.
-2. Copiar las claves desde Dashboard → Project Settings → API:
-   - `SUPABASE_URL`
-   - `SUPABASE_ANON_KEY`
-   - `SUPABASE_JWT_SECRET` (en "JWT Settings")
-3. Pegarlas en `.env`. El authMiddleware empezará a validar Bearer tokens.
-
-Si dejás `SUPABASE_JWT_SECRET` vacío, todas las requests caen como anónimas
-(útil para arrancar sin auth). Las rutas con `requireAuth` responderán 401.
-
-Para otros IdPs (Auth0, Cognito, AAAS, API keys), reemplazar el verify en
-`src/app.ts`. Ver `skill://hono-bun-api/references/auth.md`.
+Si `SUPABASE_JWT_SECRET` queda vacio, las requests caen como anonimas. Las rutas
+que requieran identidad deben cortar con `Unauthorized`/`Forbidden` desde
+application/domain.
 
 ## Estructura
 
-```
+```txt
 src/
-  server.ts                  # Bun.serve + signals
-  app.ts                     # OpenAPIHono + middlewares + mount features
-  shared/                    # Cross-feature: db, errors, result, middlewares...
-  features/
-    _example/                # Feature de referencia (Rosetta Stone)
-    <tu-feature>/            # Generado con bun run scaffold <name>
+  server.ts
+  app.ts
+  container.ts
+  shared/
+    db/
+    errors/
+    events/
+    middlewares/
+  modules/
+    examples/
+      examples.routes.ts
+      examples.controller.ts
+      examples.schemas.ts
+      application/
+      domain/
+      infrastructure/
 ```
 
-## Crear un feature nuevo
+## Crear Un Modulo Nuevo
 
 ```bash
-bun run scaffold pedidos
+bun run scaffold project
 ```
 
-Luego en `src/app.ts`:
+Luego:
+
+1. Definir tabla en `src/shared/db/schema.ts`.
+2. Registrar repository/read model en `src/container.ts`.
+3. Montar rutas en `src/app.ts`.
 
 ```ts
-import { buildPedidosRoutes } from '@features/pedidos/routes';
-app.route('/pedidos', buildPedidosRoutes(deps));
+import { buildProjectsRoutes } from '@modules/projects/projects.routes';
+
+app.route('/projects', buildProjectsRoutes(container));
 ```
 
 ## Convenciones
 
-Las reglas están en el skill `hono-bun-api` (`SKILL.md` + `references/*.md`):
-
-1. Funciones, sin clases.
-2. Result, no throw para errores de negocio.
-3. Zod en todo borde HTTP.
-4. Repos solo escritura; queries usan ReadContext.
-5. OpenAPI nace del mismo Zod.
-6. Logs estructurados con `requestId`.
+1. Hono solo adapta HTTP.
+2. Application handlers no importan Hono.
+3. Domain no importa Hono, Drizzle, Supabase ni Bun.
+4. Repository interfaces viven en domain; Drizzle implementations en infrastructure.
+5. Commands protegen invariantes y writes.
+6. Queries usan read models/Drizzle y devuelven DTOs.
+7. Zod valida input HTTP; domain valida negocio.
+8. Supabase es infraestructura, no arquitectura.
 
 ## Testing
 
@@ -89,26 +95,14 @@ Las reglas están en el skill `hono-bun-api` (`SKILL.md` + `references/*.md`):
 bun test
 ```
 
-- **Unit:** pasar `deps` mockeadas a handlers (ver `test/helpers/`).
-- **Integration:** `app.request(url, init)` (in-memory, sin port) + pglite
-  para Postgres in-process. Ver `test/helpers/db.ts`.
+- **Unit:** domain/policies/application handlers con deps fake.
+- **Integration:** repositories/read models contra pglite o testcontainers.
+- **HTTP integration:** `app.request(url, init)` sin abrir puerto.
 
-## CI: typecheck + test + build de una
+## CI
 
 ```bash
 bun run check
 ```
 
-Corre `typecheck → test → build` en orden, aborta al primer fallo. Lo mismo
-que correrías en GitHub Actions.
-
-## Build & Docker
-
-```bash
-bun run build
-bun run dist/server.js
-
-# Imagen ~80MB con Bun multi-stage
-docker build -t my-api .
-docker run -p 3000:3000 --env-file .env my-api
-```
+Corre `typecheck`, `test` y `build`.

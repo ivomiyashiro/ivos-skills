@@ -1,0 +1,17 @@
+import { success, type Result } from '@shared/result';
+import type { AppError } from '@shared/errors/app-error';
+import type { __Module__ReadModel } from '../../infrastructure/__module__-read-model';
+import type { List__Modules__Response } from '../../__modules__.schemas';
+import type { List__Modules__QueryRequest } from '../queries/list-__modules__.query';
+
+export type List__Modules__Deps = {
+  readModel: __Module__ReadModel;
+};
+
+export const list__Modules__Handler = async (
+  deps: List__Modules__Deps,
+  query: List__Modules__QueryRequest,
+): Promise<Result<List__Modules__Response, AppError>> => {
+  void query.actorId;
+  return success(await deps.readModel.list(query));
+};

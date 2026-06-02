@@ -1,178 +1,117 @@
-# Queries: forma y patrones
+# Queries
 
-## Signatura canónica
+Las queries leen datos y devuelven DTOs optimizados para el consumidor. No cargan
+agregados ni usan repositorios de write-side salvo que haya una razon excepcional.
 
-```ts
-type QueryHandler<In, Out> = (
-  ctx: ReadContext,
-  input: In,
-) => Promise<Result<Out, AppError>>;
+## Ubicacion
+
+```txt
+modules/projects/application/
+  queries/get-project-dashboard.query.ts
+  handlers/get-project-dashboard.handler.ts
+
+modules/projects/infrastructure/
+  project-read-model.ts
 ```
 
-## ReadContext
+## Forma Recomendada
 
 ```ts
-type ReadContext = {
-  db: Db;
-  logger: Logger;
-  auth: AuthPrincipal | null;
+export type GetProjectDashboardQuery = {
+  organizationId: string;
+  projectId: string;
+  actorId: string;
+};
+
+export type GetProjectDashboardDeps = {
+  readModel: ProjectReadModel;
+  permissions: PermissionService;
+};
+
+export const getProjectDashboardHandler = async (
+  deps: GetProjectDashboardDeps,
+  query: GetProjectDashboardQuery,
+): Promise<Result<ProjectDashboardDto, AppError>> => {
+  const canRead = await deps.permissions.canReadProject({
+    actorId: query.actorId,
+    organizationId: query.organizationId,
+    projectId: query.projectId,
+  });
+
+  if (!canRead) return failure(forbidden('project access denied'));
+
+  const dashboard = await deps.readModel.getDashboard(query);
+  if (!dashboard) return failure(notFound('Project', query.projectId));
+
+  return success(dashboard);
 };
 ```
 
-Las queries reciben `ctx` (no `deps`). La asimetría es intencional:
-
-| | Commands | Queries |
-|---|---|---|
-| Recibe | `CommandDeps` con repo, eventBus, clock | `ReadContext` con db raw |
-| Persiste | Sí, via repo | No (read-only) |
-| Forma del retorno | Agregado o DTO | DTO específico del endpoint |
-| Joins cross-aggregate | No (acopla slices) | Sí (es read; sin acoplar código) |
-
-## Patrón típico
+## Read Model Con Drizzle
 
 ```ts
-import { eq } from 'drizzle-orm';
+export class ProjectReadModel {
+  constructor(private readonly db: Db) {}
 
-export const getXByIdHandler = async (
-  ctx: ReadContext,
-  { id }: { id: string },
-): Promise<Result<XDto, AppError>> => {
-  const rows = await ctx.db
-    .select({
-      id: xs.id,
-      name: xs.name,
-      // proyección directa a los campos del DTO
-    })
-    .from(xs)
-    .where(eq(xs.id, id))
-    .limit(1);
+  async getDashboard(query: GetProjectDashboardQuery) {
+    const rows = await this.db
+      .select({
+        projectId: projects.id,
+        projectName: projects.name,
+        tasksCount: sql<number>`count(${tasks.id})`,
+      })
+      .from(projects)
+      .leftJoin(tasks, eq(tasks.projectId, projects.id))
+      .where(
+        and(
+          eq(projects.organizationId, query.organizationId),
+          eq(projects.id, query.projectId),
+        ),
+      )
+      .groupBy(projects.id)
+      .limit(1);
 
-  const row = rows[0];
-  if (!row) return failure(notFound('X', id));
-
-  return success(row);
-};
+    return rows[0] ?? null;
+  }
+}
 ```
 
-## Joins cross-aggregate (read-side OK)
+## Reglas
+
+- Proyectar solo campos del DTO publico.
+- Usar joins para evitar N+1.
+- Usar cursor pagination en listados grandes.
+- Filtrar siempre por tenant/organization cuando aplique.
+- Usar raw SQL/CTE/window functions cuando Drizzle builder queda forzado.
+- Mantener queries read-only: nada de insert/update/delete.
+
+## Cursor Pagination
+
+Preferir cursor por `(createdAt, id)` o por el campo real de orden + desempate.
 
 ```ts
-const rows = await ctx.db
-  .select({
-    id: quotes.id,
-    total: quotes.total,
-    customerName: customers.name,
-    customerEmail: customers.email,
-  })
-  .from(quotes)
-  .leftJoin(customers, eq(quotes.customerId, customers.id))
-  .where(eq(quotes.id, id));
-```
-
-Esto **no** rompe la regla de "no importar features cross". Estás leyendo SQL,
-no código de otro feature. La tabla `customers` está en `shared/db/schema.ts`.
-
-Si un join se vuelve recurrente entre múltiples queries, podés extraer una
-"vista lógica" en un helper del propio feature.
-
-## Paginación
-
-**Preferí cursor sobre offset.** Offset se vuelve lento con páginas grandes y es
-inconsistente cuando hay inserts concurrentes.
-
-```ts
-const ListXQuery = z.object({
-  cursor: z.string().uuid().optional(),
-  limit: z.coerce.number().int().min(1).max(100).default(20),
-});
-
-const rows = await ctx.db
+const rows = await db
   .select(...)
-  .from(xs)
-  .where(input.cursor ? gt(xs.id, input.cursor) : undefined)
-  .orderBy(asc(xs.id))
-  .limit(input.limit + 1);  // +1 para detectar siguiente página
-
-const hasMore = rows.length > input.limit;
-const items = hasMore ? rows.slice(0, input.limit) : rows;
-const nextCursor = hasMore ? items[items.length - 1].id : null;
+  .from(projects)
+  .where(
+    and(
+      eq(projects.organizationId, organizationId),
+      cursor
+        ? or(
+            lt(projects.createdAt, cursor.createdAt),
+            and(eq(projects.createdAt, cursor.createdAt), lt(projects.id, cursor.id)),
+          )
+        : undefined,
+    ),
+  )
+  .orderBy(desc(projects.createdAt), desc(projects.id))
+  .limit(limit + 1);
 ```
 
-Si el orden no es por ID (ej. por fecha), el cursor debe ser una tupla
-`(createdAt, id)` para desempate.
+## Anti-Patrones
 
-## Filtros opcionales
-
-```ts
-const conditions: SQL[] = [];
-if (input.status) conditions.push(eq(xs.status, input.status));
-if (input.fromDate) conditions.push(gte(xs.createdAt, input.fromDate));
-
-const where = conditions.length > 0 ? and(...conditions) : undefined;
-
-const rows = await ctx.db.select().from(xs).where(where);
-```
-
-## Raw SQL cuando hace falta
-
-Drizzle expone `sql` template:
-
-```ts
-import { sql } from 'drizzle-orm';
-
-const rows = await ctx.db.execute<XRow>(sql`
-  SELECT x.*, COUNT(y.id) AS y_count
-  FROM xs x
-  LEFT JOIN ys y ON y.x_id = x.id
-  WHERE x.status = ${input.status}
-  GROUP BY x.id
-  ORDER BY x.created_at DESC
-`);
-```
-
-Para queries complejas (window functions, CTEs, etc.) esto es preferible a
-construir con el builder.
-
-## Caching (opcional)
-
-Si una query es costosa y los datos son raramente mutados:
-
-```ts
-type CachedReadContext = ReadContext & { cache: Cache };
-
-export const expensiveQueryHandler = async (ctx, input) => {
-  const cached = await ctx.cache.get(`xs:${input.id}`);
-  if (cached) return success(cached);
-
-  const result = await loadFromDb(ctx, input);
-  if (result.ok) await ctx.cache.set(`xs:${input.id}`, result.value, { ttlSec: 60 });
-  return result;
-};
-```
-
-Invalidación: suscribir un handler de `XUpdated` que borre la entrada. Para casos
-simples, TTL es suficiente.
-
-## Auth en queries
-
-Si el endpoint requiere autenticación, el middleware ya pone `c.var.auth`. La query
-puede usar `ctx.auth` para filtrar:
-
-```ts
-const rows = await ctx.db
-  .select()
-  .from(xs)
-  .where(eq(xs.ownerId, ctx.auth!.userId));
-```
-
-Si la auth falta y la ruta lo requiere, el middleware `requireAuth` ya cortó antes.
-Dentro de la query, podés asumir que está (`ctx.auth!`).
-
-## Anti-patrones
-
-- ❌ Usar el repo desde la query (`createXRepo(ctx.db).findById(...)`). Va directo
-  al `ctx.db`.
-- ❌ Cargar el agregado completo y mapearlo a DTO en código. Proyectar en SQL.
-- ❌ N+1: hacer un select por cada item del listado. Usar joins.
-- ❌ Retornar el shape interno de la DB en lugar del DTO público.
-- ❌ Mutar dentro de una query (clue: `INSERT`/`UPDATE`/`DELETE` no van acá).
+- Query handler llamando `projectRepo.findById()` para responder un GET.
+- Cargar agregado completo y mapearlo en memoria.
+- Reutilizar DTO de DB como contrato publico.
+- Offset pagination en tablas grandes.
+- Query sin filtro de tenant en app multi-tenant.

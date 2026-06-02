@@ -1,0 +1,6 @@
+export type PolicyDecision = { allowed: true } | { allowed: false; reason: string };
+
+export const canUpdate__Module__ = (actorId: string | null): PolicyDecision => {
+  if (!actorId) return { allowed: false, reason: 'authentication required' };
+  return { allowed: true };
+};

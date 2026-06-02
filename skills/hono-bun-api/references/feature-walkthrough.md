@@ -1,255 +1,221 @@
-# Feature walkthrough: crear un slice completo
+# Module Walkthrough: Crear Un Modulo Completo
 
-Esta es la guía paso-a-paso para crear un feature nuevo. Cada paso linkea a la
-referencia profunda del concepto. Si querés el patrón mínimo, copiá el feature
-`_example/` del skeleton.
+Esta guia usa `projects` como ejemplo. El objetivo es que el modulo quede navegable:
+HTTP adapter, application, domain e infrastructure.
 
-## Resumen de los 6 pasos
-
-1. Schemas Zod en `schemas.ts` ([validation](validation.md))
-2. Repository write-only en `repository.ts` ([repositories](repositories.md))
-3. Command/Query handlers con Result ([commands](commands.md), [queries](queries.md))
-4. Read context en `read-context.ts` ([read-context](read-context.md))
-5. Routes con OpenAPI + `toHttpResponse` ([routing](routing.md), [openapi](openapi.md), [errors](errors.md))
-6. Tests ([testing](testing.md))
-
----
-
-## Paso 1 — Schemas Zod
+## 1. Schemas HTTP
 
 ```ts
-// features/quotes/schemas.ts
+// modules/projects/projects.schemas.ts
 import { z } from '@hono/zod-openapi';
 
-export const QuoteDto = z.object({
+export const CreateProjectInput = z.object({
+  organizationId: z.string().uuid(),
+  name: z.string().min(2).max(80),
+});
+
+export const ProjectDto = z.object({
   id: z.string().uuid(),
-  customerId: z.string().uuid(),
-  total: z.number(),
-  status: z.enum(['draft', 'sent', 'accepted']),
-}).openapi('QuoteDto');
-
-export const CreateQuoteInput = z.object({
-  customerId: z.string().uuid(),
-  items: z.array(z.object({
-    sku: z.string(),
-    qty: z.number().int().positive(),
-  })).min(1),
-}).openapi('CreateQuoteInput');
-
-export type CreateQuoteInput = z.infer<typeof CreateQuoteInput>;
+  organizationId: z.string().uuid(),
+  name: z.string(),
+  createdAt: z.string().datetime(),
+});
 ```
 
-## Paso 2 — Repository write-only
+Zod valida shape del request. Las invariantes de negocio van en domain/application.
+
+## 2. Domain
 
 ```ts
-// features/quotes/repository.ts
-import type { Db } from '@shared/db/client';
-import { quotes } from '@shared/db/schema';
-import { eq } from 'drizzle-orm';
+// modules/projects/domain/project.entity.ts
+export class Project {
+  private constructor(private props: ProjectProps) {}
 
-export type QuotesRepo = ReturnType<typeof createQuotesRepo>;
-
-export const createQuotesRepo = (db: Db) => ({
-  findById: async (id: string) =>
-    db.select().from(quotes).where(eq(quotes.id, id)).then(r => r[0] ?? null),
-  save: async (q: typeof quotes.$inferInsert) => {
-    await db.insert(quotes).values(q).onConflictDoUpdate({
-      target: quotes.id, set: q,
+  static create(input: CreateProjectProps) {
+    return new Project({
+      id: crypto.randomUUID(),
+      organizationId: input.organizationId,
+      name: input.name,
+      ownerId: input.ownerId,
+      status: 'active',
+      createdAt: input.now,
+      updatedAt: input.now,
     });
-  },
-  delete: async (id: string) => {
-    await db.delete(quotes).where(eq(quotes.id, id));
-  },
-});
+  }
+}
 ```
 
-## Paso 3 — Command y Query handlers
+```ts
+// modules/projects/domain/project.repository.ts
+export interface ProjectRepository {
+  findById(id: string): Promise<Project | null>;
+  save(project: Project): Promise<void>;
+  delete(id: string): Promise<void>;
+}
+```
+
+Domain no importa Hono, Drizzle ni Supabase.
+
+## 3. Infrastructure
 
 ```ts
-// features/quotes/commands/create-quote.ts
-import { success, type Result } from '@shared/result';
-import type { AppError } from '@shared/errors/app-error';
+// modules/projects/infrastructure/drizzle-project.repository.ts
+export class DrizzleProjectRepository implements ProjectRepository {
+  constructor(private readonly db: Db) {}
 
-export type CreateQuoteDeps = {
-  repo: QuotesRepo;
-  eventBus: EventBus;
-  logger: Logger;
-  clock: Clock;
-  userId: string | null;
+  async findById(id: string) {
+    const row = await this.db.query.projects.findFirst({
+      where: eq(projects.id, id),
+    });
+
+    return row ? ProjectMapper.toDomain(row) : null;
+  }
+
+  async save(project: Project) {
+    const row = ProjectMapper.toPersistence(project);
+    await this.db.insert(projects).values(row).onConflictDoUpdate({
+      target: projects.id,
+      set: row,
+    });
+  }
+}
+```
+
+```ts
+// modules/projects/infrastructure/project-read-model.ts
+export class ProjectReadModel {
+  constructor(private readonly db: Db) {}
+
+  async listByOrganization(input: ListProjectsQuery) {
+    return this.db
+      .select({
+        id: projects.id,
+        name: projects.name,
+        createdAt: projects.createdAt,
+      })
+      .from(projects)
+      .where(eq(projects.organizationId, input.organizationId))
+      .orderBy(desc(projects.createdAt), desc(projects.id))
+      .limit(input.limit + 1);
+  }
+}
+```
+
+## 4. Commands
+
+```ts
+// modules/projects/application/commands/create-project.command.ts
+export type CreateProjectCommand = {
+  organizationId: string;
+  name: string;
+  ownerId: string;
 };
+```
 
-export const createQuoteHandler = async (
-  deps: CreateQuoteDeps,
-  input: CreateQuoteInput,
-): Promise<Result<QuoteDto, AppError>> => {
-  const id = crypto.randomUUID();
-  const quote = { id, customerId: input.customerId, total: 0, status: 'draft' as const };
-  await deps.repo.save(quote);
-  deps.eventBus.publish({
-    type: 'QuoteCreated',
-    payload: { id },
-    occurredAt: deps.clock.now(),
+```ts
+// modules/projects/application/handlers/create-project.handler.ts
+export const createProjectHandler = async (
+  deps: CreateProjectDeps,
+  command: CreateProjectCommand,
+): Promise<Result<{ id: string }, AppError>> => {
+  return deps.tx.run(async (db) => {
+    const orgRepo = deps.createOrganizationRepo(db);
+    const projectRepo = deps.createProjectRepo(db);
+
+    const org = await orgRepo.findById(command.organizationId);
+    if (!org) return failure(notFound('Organization', command.organizationId));
+    if (!org.canCreateProject(command.ownerId)) return failure(forbidden());
+
+    const project = Project.create({ ...command, now: deps.clock.now() });
+    await projectRepo.save(project);
+
+    return success({ id: project.id });
   });
-  return success(quote);
 };
 ```
 
-```ts
-// features/quotes/queries/get-quote-by-id.ts
-import { success, failure, type Result } from '@shared/result';
-import { notFound, type AppError } from '@shared/errors/app-error';
-import { eq } from 'drizzle-orm';
-import { quotes } from '@shared/db/schema';
-import type { ReadContext } from '@shared/hono/types';
+## 5. Queries
 
-export const getQuoteByIdHandler = async (
-  ctx: ReadContext,
-  { id }: { id: string },
-): Promise<Result<QuoteDto, AppError>> => {
-  const row = await ctx.db.select().from(quotes).where(eq(quotes.id, id)).then(r => r[0]);
-  if (!row) return failure(notFound('Quote', id));
-  return success(row);
+```ts
+// modules/projects/application/handlers/list-projects.handler.ts
+export const listProjectsHandler = async (
+  deps: { readModel: ProjectReadModel },
+  query: ListProjectsQuery,
+) => {
+  return success(await deps.readModel.listByOrganization(query));
 };
 ```
 
-## Paso 4 — Read context
+Queries devuelven DTOs/read models. No usar repositorios de write-side para listados.
+
+## 6. Controller
 
 ```ts
-// features/quotes/read-context.ts
-import type { Context } from 'hono';
-import type { AppEnv, ReadContext } from '@shared/hono/types';
-
-export type QuotesReadContext = ReadContext;
-
-export const buildQuotesReadContext = (c: Context<AppEnv>): QuotesReadContext => ({
-  db: c.get('db'),
-  logger: c.get('logger'),
-  auth: c.get('auth'),
-});
-```
-
-## Paso 5 — Routes con OpenAPI + Result → HTTP
-
-```ts
-// features/quotes/routes.ts
-import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
-import { toHttpResponse } from '@shared/errors/to-http';
-import type { AppDeps } from '@/app';
-
-export const buildQuotesRoutes = (deps: AppDeps) => {
-  const r = new OpenAPIHono<AppEnv>();
-
-  r.openapi(
-    createRoute({
-      method: 'post',
-      path: '/',
-      request: { body: { content: { 'application/json': { schema: CreateQuoteInput } } } },
-      responses: {
-        201: { description: 'Created', content: { 'application/json': { schema: QuoteDto } } },
-        422: { description: 'Validation error' },
+// modules/projects/projects.controller.ts
+export const createProjectController =
+  (container: AppContainer) =>
+  async (c: Context<AppEnv>) => {
+    const result = await createProjectHandler(
+      {
+        createProjectRepo: container.createProjectRepository,
+        createOrganizationRepo: container.createOrganizationRepository,
+        tx: container.tx,
+        clock: container.clock,
+        logger: c.get('logger'),
       },
-    }),
-    async (c) => {
-      const result = await createQuoteHandler(
-        {
-          repo: createQuotesRepo(c.get('db')),
-          eventBus: deps.eventBus,
-          logger: c.get('logger'),
-          clock: deps.clock,
-          userId: c.get('auth')?.userId ?? null,
-        },
-        c.req.valid('json'),
-      );
-      return toHttpResponse(c, result, 201);
-    },
-  );
+      { ...c.req.valid('json'), ownerId: c.get('auth')!.userId },
+    );
+
+    return toHttpResponse(c, result, 201);
+  };
+```
+
+Controller adapta HTTP. No contiene reglas de negocio.
+
+## 7. Routes
+
+```ts
+// modules/projects/projects.routes.ts
+export const buildProjectsRoutes = (container: AppContainer) => {
+  const r = createApiRouter();
+
+  r.openapi(createRoute({ method: 'post', path: '/', ... }), createProjectController(container));
+  r.openapi(createRoute({ method: 'get', path: '/', ... }), listProjectsController(container));
 
   return r;
 };
 ```
 
-Después mountealo en `src/app.ts`:
+## 8. Container Y App
 
 ```ts
-app.route('/quotes', buildQuotesRoutes(deps));
-```
+// container.ts
+const projectReadModel = new ProjectReadModel(db);
 
-## Paso 6 — Tests
+return {
+  tx,
+  projectReadModel,
+  createProjectRepository: (db: Db) => new DrizzleProjectRepository(db),
+};
+```
 
 ```ts
-// features/quotes/routes.test.ts
-import { describe, test, expect } from 'bun:test';
-import { buildApp } from '@/app';
-
-describe('POST /quotes', () => {
-  test('201 con input válido', async () => {
-    const app = buildApp(testDeps);
-    const res = await app.request('/quotes', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        customerId: crypto.randomUUID(),
-        items: [{ sku: 'A', qty: 1 }],
-      }),
-    });
-    expect(res.status).toBe(201);
-  });
-});
+// app.ts
+app.route('/projects', buildProjectsRoutes(container));
 ```
 
-Para el setup de DB efímera (pglite o testcontainers) ver [testing](testing.md).
+## 9. Tests
 
----
+- Domain: entity/policy unit tests.
+- Application: handler tests con repos fake.
+- Infrastructure: repository/read model contra DB real.
+- HTTP: `app.request()` con container de test.
 
-## Snippets canónicos (formas de tipo)
+## Checklist
 
-Estos snippets son los contratos que todos los features deben respetar. El código
-real vive en `shared/`; acá quedan para consulta rápida.
-
-### Result<T, E>
-
-```ts
-type Result<T, E> = { ok: true; value: T } | { ok: false; error: E };
-const success = <T>(value: T) => ({ ok: true, value });
-const failure = <E>(error: E) => ({ ok: false, error });
-```
-
-### AppError tagged union
-
-```ts
-type AppError =
-  | { kind: 'NotFound'; resource: string; id: string }
-  | { kind: 'Unauthorized'; reason?: string }
-  | { kind: 'Forbidden'; reason?: string }
-  | { kind: 'Validation'; issues: { path: string; message: string }[] }
-  | { kind: 'Conflict'; reason: string }
-  | { kind: 'Unknown'; cause?: unknown };
-```
-
-### Shape de command handler
-
-```ts
-type CommandHandler<In, Out> = (
-  deps: CommandDeps,
-  input: In,
-) => Promise<Result<Out, AppError>>;
-```
-
-### Shape de query handler
-
-```ts
-type QueryHandler<In, Out> = (
-  ctx: ReadContext,
-  input: In,
-) => Promise<Result<Out, AppError>>;
-```
-
-### Repository factory
-
-```ts
-const createXRepo = (db: Db) => ({
-  findById: async (id: string) => /* ... */,
-  save: async (entity) => /* ... */,
-  delete: async (id: string) => /* ... */,
-});
-```
+- [ ] Domain no importa frameworks.
+- [ ] Commands pasan por repositorios/write-side.
+- [ ] Queries usan read models/Drizzle.
+- [ ] Controllers no tienen reglas.
+- [ ] Transactions envuelven multiples writes/outbox.
+- [ ] DTOs no exponen rows internas.

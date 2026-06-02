@@ -172,12 +172,12 @@ const db = buildDb(url);
 Más lento (arranca Docker), pero Postgres real. Útil si pglite no cubre algún feature
 de Postgres que usás (extensions, etc.).
 
-## Tests por feature
+## Tests por modulo
 
 Tests viven al lado del código:
 
 ```
-features/quotes/
+modules/quotes/
   commands/create-quote.ts
   commands/create-quote.test.ts        # unit
   queries/list-quotes.ts
@@ -186,7 +186,7 @@ features/quotes/
   routes.test.ts                       # integration
 ```
 
-Esto sigue la convención de vertical slice — todo el feature en una carpeta.
+Esto mantiene todo el modulo en una carpeta, con capas internas claras.
 
 ## Cobertura
 

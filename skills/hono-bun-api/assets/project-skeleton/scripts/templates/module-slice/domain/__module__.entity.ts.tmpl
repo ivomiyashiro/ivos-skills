@@ -1,0 +1,79 @@
+import type { __Module__Status } from '../__modules__.schemas';
+import type { __Module__Event } from './__module__.events';
+
+export type __Module__Props = {
+  id: string;
+  name: string;
+  status: __Module__Status;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export class __Module__ {
+  private readonly events: __Module__Event[] = [];
+
+  private constructor(private props: __Module__Props) {}
+
+  static create(input: { name: string; now: Date }): __Module__ {
+    const entity = new __Module__({
+      id: crypto.randomUUID(),
+      name: input.name,
+      status: 'draft',
+      createdAt: input.now,
+      updatedAt: input.now,
+    });
+
+    entity.events.push({
+      type: '__Module__Created',
+      payload: { id: entity.id, name: entity.name },
+      occurredAt: input.now,
+    });
+
+    return entity;
+  }
+
+  static rehydrate(props: __Module__Props): __Module__ {
+    return new __Module__(props);
+  }
+
+  get id() {
+    return this.props.id;
+  }
+
+  get name() {
+    return this.props.name;
+  }
+
+  get status() {
+    return this.props.status;
+  }
+
+  get createdAt() {
+    return this.props.createdAt;
+  }
+
+  get updatedAt() {
+    return this.props.updatedAt;
+  }
+
+  update(input: { name?: string; status?: __Module__Status; now: Date }) {
+    this.props = {
+      ...this.props,
+      ...('name' in input && input.name !== undefined ? { name: input.name } : {}),
+      ...('status' in input && input.status !== undefined ? { status: input.status } : {}),
+      updatedAt: input.now,
+    };
+
+    this.events.push({
+      type: '__Module__Updated',
+      payload: { id: this.id },
+      occurredAt: input.now,
+    });
+  }
+
+  pullEvents(): __Module__Event[] {
+    const events = [...this.events];
+    this.events.length = 0;
+    return events;
+  }
+}

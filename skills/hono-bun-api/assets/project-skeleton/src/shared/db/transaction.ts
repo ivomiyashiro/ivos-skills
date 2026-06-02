@@ -1,9 +1,13 @@
 import type { Db } from './client';
 
+export type TransactionManager = {
+  run<T>(fn: (db: Db) => Promise<T>): Promise<T>;
+};
+
 /**
- * withTransaction — ejecuta `fn` dentro de una transacción. Si lanza, rollback.
- * El handle `tx` pasado a `fn` es del mismo tipo que `Db` — los repos creados
- * con ese tx persisten dentro de la transacción.
+ * TransactionManager — explicita el boundary transaccional de los commands.
+ * El handle `tx` pasado a `fn` es compatible con Db para crear repos/read models.
  */
-export const withTransaction = <T>(db: Db, fn: (tx: Db) => Promise<T>): Promise<T> =>
-  db.transaction(async (tx) => fn(tx as Db));
+export const createTransactionManager = (db: Db): TransactionManager => ({
+  run: (fn) => db.transaction(async (tx) => fn(tx as Db)),
+});

@@ -1,30 +1,19 @@
-# Errors y Result pattern
+# Errores Y Result
 
-## La filosofía
+El default del skeleton usa `Result<T, AppError>` para errores esperados de negocio
+en application handlers. Esto hace explicito el contrato del caso de uso.
 
-- **Result<T, E>** para errores de **negocio** que el caller puede manejar.
-- **`throw`** SOLO para errores de **programador** (bugs, libs que fallan, panics).
-- Cada handler retorna `Promise<Result<Out, AppError>>`.
-
-## Result<T, E>
+## Result
 
 ```ts
-type Result<T, E> = { ok: true; value: T } | { ok: false; error: E };
-const success = <T>(value: T): Result<T, never> => ({ ok: true, value });
-const failure = <E>(error: E): Result<never, E> => ({ ok: false, error });
+type Result<T, E> =
+  | { ok: true; value: T }
+  | { ok: false; error: E };
 ```
 
-Plain discriminated union. Sin librería externa.
+Usar `success(value)` y `failure(error)` para consistencia.
 
-**Por qué no `neverthrow`:**
-- Una dep menos.
-- API más simple (no `.map().andThen().match()`).
-- Espeja el Result de .NET que ya usás (`response-pattern` skill).
-
-Si en el futuro necesitás chaining (`map`, `flatMap`), están exportados en
-`result.ts` como helpers planos.
-
-## AppError tagged union
+## AppError
 
 ```ts
 type AppError =
@@ -36,119 +25,49 @@ type AppError =
   | { kind: 'Unknown'; cause?: unknown };
 ```
 
-Discriminant es `kind`. TypeScript narrowa con switch exhaustivo.
+`toHttpResponse` mapea `AppError` a status HTTP. Controllers no hacen `try/catch`
+por cada error de negocio.
 
-## Helpers de construcción
+## Domain Errors
 
-```ts
-notFound('Quote', id)
-unauthorized('invalid token')
-forbidden('missing role: admin')
-validation([{ path: 'amount', message: 'over limit' }])
-conflict('quote already cancelled')
-unknown(err)
-```
+Domain puede expresar fallas como:
+- error objects (`ProjectLimitReached`)
+- policy results (`{ allowed: false, reason }`)
+- value object factory result
 
-Usar estos en lugar de literal objects para consistencia.
-
-## Mapeo a HTTP
-
-`toHttpResponse(c, result, successStatus)` hace switch sobre `kind`:
-
-| kind | Status |
-|---|---|
-| `NotFound` | 404 |
-| `Unauthorized` | 401 |
-| `Forbidden` | 403 |
-| `Validation` | 422 |
-| `Conflict` | 409 |
-| `Unknown` | 500 |
-| success | `successStatus` (default 200) |
-
-Switch exhaustivo: si agregás un kind nuevo a AppError, TS forza agregar el caso
-en to-http.ts.
-
-### Validation: dos fuentes, mismo status
-
-1. **Zod en el borde** (request body/params/query). Manejado por el `defaultHook`
-   de `createApiRouter()` — devuelve 422 con `AppError.Validation` sin que el
-   handler corra. Ver `references/openapi.md`.
-2. **Regla de dominio** después de validación de shape (ej. monto > límite). El
-   handler retorna `failure(validation([...]))` y `toHttpResponse` lo mapea a 422.
-
-Ambos casos producen el mismo body shape — el cliente no necesita distinguir.
-
-## Ejemplo de retorno
+El application handler traduce esas fallas a `AppError`.
 
 ```ts
-const handler = async (deps, input) => {
-  if (input.amount < 0) {
-    return failure(validation([{ path: 'amount', message: 'must be positive' }]));
-  }
-  const existing = await deps.repo.findById(input.id);
-  if (!existing) return failure(notFound('X', input.id));
-  if (existing.status === 'archived') {
-    return failure(conflict('cannot modify archived'));
-  }
-  await deps.repo.save({ ...existing, ...input });
-  return success(toDto(existing));
-};
+const decision = organization.canCreateProject(actorId);
+if (!decision.allowed) {
+  return failure(forbidden(decision.reason));
+}
 ```
 
-## Cuando SÍ `throw`
+## Cuando Throw Es Correcto
 
-- Bug de programación (e.g., asserting invariantes que no deberían poder pasar).
-- Falla de infraestructura (DB connection lost, lib externa).
-- Configuración inválida al boot.
+Usar `throw` para:
+- bugs de programador
+- invariant breach que no deberia ser posible
+- fallas de infraestructura
+- config invalida al boot
 
-Esos throws los atrapa `app.onError` (`shared/middlewares/error-handler.ts`),
-loguea con stack, y devuelve 500 con un body neutro `{ kind: 'Unknown', requestId }`.
+El middleware global loguea stack y responde 500 neutro.
 
-## Anti-patrones
+## Exceptions Tipadas Como Variante
 
-- ❌ `throw new HttpException(404, 'not found')`. Tipo de retorno miente y se
-  pierde el switch exhaustivo.
-- ❌ Convertir errores comunes en `Unknown`. Cada caso conocido tiene su kind.
-- ❌ Filtrar detalles internos en el body de respuesta (stack trace, query, etc.).
-  Loguear sí; devolver al cliente no.
-- ❌ Custom error class: `class NotFoundError extends Error`. Funciona, pero el
-  switch exhaustivo no escala con `instanceof` chains.
-- ❌ Olvidar mapear un kind nuevo: agregar a `AppError` debe forzar agregar a
-  `to-http.ts`. Mantené el switch exhaustivo (sin `default`).
+Si el proyecto ya usa exceptions tipadas para negocio, se puede aceptar:
+- una jerarquia chica de errores
+- middleware mapper central
+- nada de `try/catch` repetido en controllers
 
-## Result en otros idiomas
+No mezclar `Result` y exceptions de negocio dentro del mismo modulo sin una razon
+clara. La consistencia vale mas que el estilo elegido.
 
-| | Acá (TS) | .NET (response-pattern) | Rust |
-|---|---|---|---|
-| Tipo | `Result<T, E>` | `Result<T>` | `Result<T, E>` |
-| Ok | `{ ok: true, value }` | `Success` static factory | `Ok(value)` |
-| Err | `{ ok: false, error }` | `Failure` static factory | `Err(error)` |
-| Switch | `if (r.ok) ...` | `if (r.IsSuccess) ...` | `match r { Ok(v) => ... }` |
+## Anti-Patrones
 
-El mental model es el mismo. Estás reusando lo que ya sabés.
-
-## Problem+JSON (opcional)
-
-Si querés alinear con RFC 7807 (Problem Details for HTTP APIs):
-
-```ts
-export const toProblemJson = (c, result) => {
-  if (result.ok) return c.json(result.value, 200);
-  const err = result.error;
-  return c.json(
-    {
-      type: `https://errors.example.com/${err.kind}`,
-      title: err.kind,
-      status: statusForKind(err.kind),
-      detail: 'reason' in err ? err.reason : undefined,
-      instance: c.req.path,
-      requestId: c.get('requestId'),
-      ...err,
-    },
-    statusForKind(err.kind),
-    { 'Content-Type': 'application/problem+json' },
-  );
-};
-```
-
-Mantenelo opcional — el `toHttpResponse` base con `kind` es más simple para empezar.
+- `throw new HttpException(404)` desde domain/application
+- errores HTTP dentro de entities
+- devolver stack traces al cliente
+- convertir todos los casos conocidos a `Unknown`
+- `catch` generico en cada controller

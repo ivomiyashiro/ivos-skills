@@ -1,163 +1,111 @@
-# Commands: forma y patrones
+# Commands
 
-## Signatura canónica
+Los commands modifican estado. Cada command representa un caso de uso nombrado con
+verbo e intencion de negocio: `CreateProjectCommand`, `InviteMemberCommand`,
+`CancelSubscriptionCommand`.
 
-```ts
-type CommandHandler<In, Out> = (
-  deps: CommandDeps,
-  input: In,
-) => Promise<Result<Out, AppError>>;
+## Ubicacion
+
+```txt
+modules/projects/application/
+  commands/create-project.command.ts
+  handlers/create-project.handler.ts
 ```
 
-Toda mutación del estado pasa por un command handler con esta forma.
-
-## CommandDeps
+## Forma Recomendada
 
 ```ts
-type CommandDeps = {
-  repo: XRepo;              // Específico del feature
-  eventBus: EventBus;       // Para domain events
-  logger: Logger;           // Child logger por request
-  clock: Clock;             // { now(): Date } — abstracción para tests
-  userId: string | null;    // Del principal autenticado
+export type CreateProjectCommand = {
+  organizationId: string;
+  name: string;
+  ownerId: string;
 };
-```
 
-**Por qué Clock:** evita `new Date()` directo, que hace los tests no determinísticos.
-En prod se inyecta `systemClock`; en tests, un `fakeClock = { now: () => fixedDate }`.
+export type CreateProjectDeps = {
+  projectRepo: ProjectRepository;
+  organizationRepo: OrganizationRepository;
+  tx: TransactionManager;
+  eventBus: EventBus;
+  clock: Clock;
+  logger: Logger;
+};
 
-## Patrón típico
+export const createProjectHandler = async (
+  deps: CreateProjectDeps,
+  command: CreateProjectCommand,
+): Promise<Result<{ id: string }, AppError>> => {
+  return deps.tx.run(async () => {
+    const org = await deps.organizationRepo.findById(command.organizationId);
+    if (!org) return failure(notFound('Organization', command.organizationId));
 
-```ts
-export const createXHandler = async (
-  deps: CreateXDeps,
-  input: CreateXInput,
-): Promise<Result<XDto, AppError>> => {
-  // 1) Validaciones de dominio (más allá de Zod)
-  if (input.amount > MAX_LIMIT) {
-    return failure({ kind: 'Validation', issues: [{ path: 'amount', message: 'over limit' }] });
-  }
+    if (!org.canCreateProject(command.ownerId)) {
+      return failure(forbidden('not allowed to create project'));
+    }
 
-  // 2) Cargar agregados afectados (solo si necesitás mutar uno existente)
-  // const existing = await deps.repo.findById(input.id);
-  // if (!existing) return failure(notFound('X', input.id));
+    const project = Project.create({
+      organizationId: command.organizationId,
+      name: command.name,
+      ownerId: command.ownerId,
+      now: deps.clock.now(),
+    });
 
-  // 3) Aplicar la mutación (puro, sin I/O)
-  const entity = {
-    id: crypto.randomUUID(),
-    ...input,
-    createdAt: deps.clock.now(),
-  };
+    await deps.projectRepo.save(project);
+    await deps.eventBus.publish(project.pullEvents());
 
-  // 4) Persistir
-  await deps.repo.save(entity);
-
-  // 5) Emitir eventos (después de persistir)
-  deps.eventBus.publish({
-    type: 'XCreated',
-    payload: { id: entity.id },
-    occurredAt: deps.clock.now(),
+    deps.logger.info({ projectId: project.id }, 'project created');
+    return success({ id: project.id });
   });
-
-  deps.logger.info({ id: entity.id }, 'X created');
-
-  // 6) Retornar DTO
-  return success(toDto(entity));
 };
 ```
+
+## Responsabilidades
+
+Un command handler puede:
+- cargar agregados necesarios para la decision
+- verificar authorization fina
+- aplicar policies de dominio
+- abrir transacciones
+- llamar repositorios/adapters
+- registrar outbox/domain events
+- devolver output minimo
+
+No debe:
+- leer `Context` de Hono
+- parsear JSON
+- devolver status HTTP
+- construir SQL de dashboards/listados
+- llamar otro command handler de otro modulo como shortcut
+
+## Validacion
+
+Zod valida shape en el borde HTTP. El command/domain valida reglas de negocio:
+- limites del plan
+- permisos del actor
+- estado actual del agregado
+- unicidad semantica
+- transiciones permitidas
 
 ## Transacciones
 
-Si el command necesita atomicidad sobre múltiples writes:
+Usar `TransactionManager` cuando:
+- se escriben multiples tablas
+- se guarda entidad + outbox
+- se mutan multiples agregados
+- hay que garantizar rollback atomico
 
-```ts
-import { withTransaction } from '@shared/db/transaction';
-import { createXRepo } from '../repository';
+Para writes triviales de una sola tabla, el repo puede usar `db` directo.
 
-export const transferHandler = async (deps, input) =>
-  withTransaction(deps.db, async (tx) => {
-    const repo = createXRepo(tx);  // repo creado SOBRE la tx
-    // ... múltiples save() dentro de la misma tx
-    // si tira, rollback automático
-    return success(result);
-  });
-```
+## Eventos
 
-El handler recibe `db: Db` en `deps` solo si necesita transacciones. Para casos
-simples, `repo` ya cierra sobre el `db` global.
+Para side effects no criticos:
+- dominio acumula eventos
+- command persiste cambios
+- command guarda outbox o publica post-commit
+- worker procesa email/webhook/notificacion
 
-## Eventos: cuándo emitir
+No publicar eventos externos antes de confirmar la transaccion.
 
-- **Después** de persistir, no antes.
-- Si hay transacción: acumular eventos en una lista local, persistir, commitear, y
-  emitir solo si el commit fue exitoso.
+## Testing
 
-```ts
-const pendingEvents: DomainEvent[] = [];
-
-await withTransaction(deps.db, async (tx) => {
-  const repo = createXRepo(tx);
-  await repo.save(entity);
-  pendingEvents.push({ type: 'XCreated', payload: { id }, occurredAt });
-});
-
-// Tx commiteada — ahora sí emitimos
-deps.eventBus.publishMany(pendingEvents);
-```
-
-Para eventos durables (cross-process), evolucionar a outbox table — guardar el evento
-en la misma tx y un worker separado lo despacha. Ver `references/events.md`.
-
-## Errores típicos retornados
-
-| AppError kind | Cuándo |
-|---|---|
-| `Validation` | Input pasó Zod pero falla regla de dominio (ej. monto > límite). |
-| `NotFound` | El agregado a mutar no existe. |
-| `Conflict` | Estado inválido para la operación (ej. cancelar algo ya cancelado). |
-| `Unauthorized` / `Forbidden` | Si el handler hace una decisión de auth fina más allá del middleware. |
-
-`Unknown` lo deja el `app.onError` cuando hay un throw inesperado.
-
-## Idempotencia
-
-Si el cliente puede reintentar, agregar un `idempotencyKey` opcional al input:
-
-```ts
-const CreateXInput = z.object({
-  // ...
-  idempotencyKey: z.string().uuid().optional(),
-});
-```
-
-El repo puede `findByIdempotencyKey` antes de crear; si existe, retornar el resultado
-previo en lugar de crear duplicado.
-
-## Tests
-
-Unit test sin Hono:
-
-```ts
-test('create X persiste y emite evento', async () => {
-  const repo = { save: mock(async () => {}), findById: mock(async () => null), delete: mock(async () => {}) };
-  const eventBus = { publish: mock(() => {}), publishMany: mock(() => {}), on: mock(() => {}), off: mock(() => {}) };
-  const clock = { now: () => new Date('2026-05-12T00:00:00Z') };
-
-  const result = await createXHandler(
-    { repo, eventBus, logger: silentLogger, clock, userId: 'u1' },
-    { name: 'foo', total: 10 },
-  );
-
-  expect(result.ok).toBe(true);
-  expect(repo.save).toHaveBeenCalledTimes(1);
-  expect(eventBus.publish).toHaveBeenCalledTimes(1);
-});
-```
-
-## Anti-patrones
-
-- ❌ `throw` para business errors. Usar `failure()`.
-- ❌ Persistir y emitir evento dentro de la misma operación atómica sin tx
-  (el evento puede irse aunque la persistencia falle).
-- ❌ Cargar agregados que no vas a mutar (eso es una query).
-- ❌ Llamar otros command handlers desde un command (acopla slices). Usar eventos.
+Unit testear command handlers con repositorios fake. Integration testear repositorios
+Drizzle contra DB real o pglite/testcontainers.

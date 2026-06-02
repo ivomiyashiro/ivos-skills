@@ -1,0 +1,91 @@
+import { createRoute, z } from '@hono/zod-openapi';
+import { createApiRouter } from '@shared/hono/router';
+import type { AppContainer } from '@/container';
+import {
+  Create__Module__Input,
+  Update__Module__Input,
+  __Module__Dto,
+  __Module__IdParam,
+  List__Modules__Query,
+  List__Modules__Response,
+} from './__modules__.schemas';
+import {
+  create__Module__Controller,
+  get__Module__Controller,
+  list__Modules__Controller,
+  update__Module__Controller,
+} from './__modules__.controller';
+
+export const build__Modules__Routes = (container: AppContainer) => {
+  const r = createApiRouter();
+  const ErrorBody = z.object({ kind: z.string() }).passthrough().openapi('ErrorBody');
+
+  r.openapi(
+    createRoute({
+      method: 'post',
+      path: '/',
+      tags: ['__modules__'],
+      summary: 'Create a __module__',
+      request: {
+        body: { content: { 'application/json': { schema: Create__Module__Input } } },
+      },
+      responses: {
+        201: { description: 'Created', content: { 'application/json': { schema: __Module__Dto } } },
+        422: { description: 'Validation error', content: { 'application/json': { schema: ErrorBody } } },
+      },
+    }),
+    create__Module__Controller(container) as any,
+  );
+
+  r.openapi(
+    createRoute({
+      method: 'put',
+      path: '/{id}',
+      tags: ['__modules__'],
+      summary: 'Update a __module__',
+      request: {
+        params: __Module__IdParam,
+        body: { content: { 'application/json': { schema: Update__Module__Input } } },
+      },
+      responses: {
+        200: { description: 'Updated', content: { 'application/json': { schema: __Module__Dto } } },
+        403: { description: 'Forbidden', content: { 'application/json': { schema: ErrorBody } } },
+        404: { description: 'Not found', content: { 'application/json': { schema: ErrorBody } } },
+        422: { description: 'Validation error', content: { 'application/json': { schema: ErrorBody } } },
+      },
+    }),
+    update__Module__Controller(container) as any,
+  );
+
+  r.openapi(
+    createRoute({
+      method: 'get',
+      path: '/{id}',
+      tags: ['__modules__'],
+      summary: 'Get a __module__ by ID',
+      request: { params: __Module__IdParam },
+      responses: {
+        200: { description: 'OK', content: { 'application/json': { schema: __Module__Dto } } },
+        404: { description: 'Not found', content: { 'application/json': { schema: ErrorBody } } },
+      },
+    }),
+    get__Module__Controller(container) as any,
+  );
+
+  r.openapi(
+    createRoute({
+      method: 'get',
+      path: '/',
+      tags: ['__modules__'],
+      summary: 'List __modules__ with cursor pagination',
+      request: { query: List__Modules__Query },
+      responses: {
+        200: { description: 'OK', content: { 'application/json': { schema: List__Modules__Response } } },
+        422: { description: 'Validation error', content: { 'application/json': { schema: ErrorBody } } },
+      },
+    }),
+    list__Modules__Controller(container) as any,
+  );
+
+  return r;
+};
