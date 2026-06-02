@@ -1,0 +1,4 @@
+interface:
+  display_name: "ivos-skills"
+  short_description: "Software development skills for debugging, planning, Flutter, React, Hono/Bun APIs, Supabase, git, and code review."
+  default_prompt: "Use the relevant ivos-skills skill for this software development task."

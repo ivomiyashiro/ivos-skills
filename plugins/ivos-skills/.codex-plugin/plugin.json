@@ -32,7 +32,9 @@
     ],
     "websiteURL": "https://github.com/ivomiyashiro/ivos-skills",
     "defaultPrompt": [
-      "Use the relevant ivos-skills skill for this software development task."
+      "Debug this issue systematically.",
+      "Review this code for bugs and improvements.",
+      "Plan a TDD implementation for this feature."
     ],
     "brandColor": "#2563EB",
     "screenshots": []
