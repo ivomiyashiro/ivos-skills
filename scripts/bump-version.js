@@ -17,15 +17,25 @@ function bumpVersion(filePath) {
   if (!fs.existsSync(filePath)) return null;
   const content = fs.readFileSync(filePath, 'utf8');
   const json = JSON.parse(content);
-  if (!json.version) return null;
-  
-  const parts = json.version.split('.');
+  const currentVersion = json.version ?? json.plugins?.[0]?.version;
+  if (!currentVersion) return null;
+
+  const parts = currentVersion.split('.');
   const patch = parseInt(parts[2], 10) + 1;
-  json.version = `${parts[0]}.${parts[1]}.${patch}`;
-  
+  const nextVersion = `${parts[0]}.${parts[1]}.${patch}`;
+
+  if (json.version) {
+    json.version = nextVersion;
+  }
+  if (Array.isArray(json.plugins)) {
+    for (const plugin of json.plugins) {
+      if (plugin.version) plugin.version = nextVersion;
+    }
+  }
+
   fs.writeFileSync(filePath, JSON.stringify(json, null, 2) + '\n');
-  console.log(`Bumped version in ${path.basename(filePath)} to ${json.version}`);
-  return json.version;
+  console.log(`Bumped version in ${path.basename(filePath)} to ${nextVersion}`);
+  return nextVersion;
 }
 
 bumpVersion(pluginPath);

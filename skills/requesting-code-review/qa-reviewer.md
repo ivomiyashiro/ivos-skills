@@ -1,170 +1,42 @@
 # Unified QA Reviewer Prompt Template
 
-Use this template when dispatching a QA reviewer subagent.
+Use for one reviewer that checks spec compliance, code quality, tests, and production risk.
 
-**Purpose:** Review completed work for both **Spec Compliance** (does it match requirements exactly?) and **Code Quality** (is it built well?) before it cascades into more work.
+```text
+Task: Review code changes
 
-```
-Task tool (general-purpose):
-  description: "Review code changes"
-  prompt: |
-    You are a Senior QA and Code Reviewer with expertise in software architecture,
-    design patterns, and exact specification matching. Your job is to review completed work
-    for both Spec Compliance and Code Quality, identifying issues before they cascade.
+What was implemented:
+{DESCRIPTION}
 
-    ## What Was Implemented
+Requirements / plan:
+{PLAN_OR_REQUIREMENTS}
 
-    {DESCRIPTION}
+Git range:
+Base: {BASE_SHA}
+Head: {HEAD_SHA}
 
-    ## Requirements / Plan
+Commands to inspect:
+git diff --stat {BASE_SHA}..{HEAD_SHA}
+git diff {BASE_SHA}..{HEAD_SHA}
 
-    {PLAN_OR_REQUIREMENTS}
+Check:
+- Spec: required behavior present, no unrequested scope, visual mock matched if provided.
+- Quality: clear boundaries, names, error handling, type safety, no premature abstraction.
+- Tests: behavior covered, edge cases meaningful, required commands actually pass.
+- Risk: migrations, compatibility, security, performance, docs if relevant.
+- Skill compliance: TDD/domain rules listed in task were followed.
 
-    ## Git Range to Review
+Calibrate:
+- Flag only issues that can cause wrong behavior, regressions, maintenance risk, or spec drift.
+- Severity: Critical = must fix; Important = should fix before merge; Minor = optional.
+- No vague feedback. Use file:line and why it matters.
 
-    **Base:** {BASE_SHA}
-    **Head:** {HEAD_SHA}
-
-    ```bash
-    git diff --stat {BASE_SHA}..{HEAD_SHA}
-    git diff {BASE_SHA}..{HEAD_SHA}
-    ```
-
-    ## What to Check
-
-    **Spec Compliance:**
-    - Does the implementation exactly match the plan / requirements?
-    - Is any required functionality missing?
-    - Did the developer build extra features not requested in the spec? (Flag this as an issue).
-    - If a Visual Reference mock was provided, does the UI match its structure and layout exactly?
-
-    **Code quality:**
-    - Clean separation of concerns?
-    - Proper error handling?
-    - Type safety where applicable?
-    - DRY without premature abstraction?
-    - Edge cases handled?
-
-    **Architecture:**
-    - Sound design decisions?
-    - Reasonable scalability and performance?
-    - Security concerns?
-    - Integrates cleanly with surrounding code?
-
-    **Testing:**
-    - Tests verify real behavior, not mocks?
-    - Edge cases covered?
-    - Integration tests where they matter?
-    - All tests passing?
-    - If TypeScript: run `tsc --noEmit` and include the output. Type errors are not visible from diffs alone and can lurk in cross-file combinations.
-
-    **Production readiness:**
-    - Migration strategy if schema changed?
-    - Backward compatibility considered?
-    - Documentation complete?
-    - No obvious bugs?
-
-    ## Calibration
-
-    Categorize issues by actual severity. Not everything is Critical.
-    Acknowledge what was done well before listing issues — accurate praise
-    helps the implementer trust the rest of the feedback.
-
-    If you find significant deviations from the plan, flag them specifically
-    so the implementer can confirm whether the deviation was intentional.
-    If you find issues with the plan itself rather than the implementation,
-    say so.
-
-    ## Output Format
-
-    ### Strengths
-    [What's well done? Be specific.]
-
-    ### Issues
-
-    #### Critical (Must Fix)
-    [Bugs, security issues, data loss risks, broken functionality]
-
-    #### Important (Should Fix)
-    [Architecture problems, missing features, poor error handling, test gaps]
-
-    #### Minor (Nice to Have)
-    [Code style, optimization opportunities, documentation polish]
-
-    For each issue:
-    - File:line reference
-    - What's wrong
-    - Why it matters
-    - How to fix (if not obvious)
-
-    ### Recommendations
-    [Improvements for code quality, architecture, or process]
-
-    ### Assessment
-
-    **Ready to merge?** [Yes | No | With fixes]
-
-    **Reasoning:** [1-2 sentence technical assessment]
-
-    ## Critical Rules
-
-    **DO:**
-    - Categorize by actual severity
-    - Be specific (file:line, not vague)
-    - Explain WHY each issue matters
-    - Acknowledge strengths
-    - Give a clear verdict
-
-    **DON'T:**
-    - Say "looks good" without checking
-    - Mark nitpicks as Critical
-    - Give feedback on code you didn't actually read
-    - Be vague ("improve error handling")
-    - Avoid giving a clear verdict
-```
-
-**Placeholders:**
-- `{DESCRIPTION}` — brief summary of what was built
-- `{PLAN_OR_REQUIREMENTS}` — what it should do (plan file path, task text, or requirements)
-- `{BASE_SHA}` — starting commit
-- `{HEAD_SHA}` — ending commit
-
-**QA Reviewer returns:** Strengths, Issues (Spec Compliance / Code Quality separated by severity), Recommendations, Assessment
-
-## Example Output
-
-```
-### Strengths
-- Clean database schema with proper migrations (db.ts:15-42)
-- Comprehensive test coverage (18 tests, all edge cases)
-- Good error handling with fallbacks (summarizer.ts:85-92)
-
-### Issues
-
-#### Important
-1. **Missing help text in CLI wrapper**
-   - File: index-conversations:1-31
-   - Issue: No --help flag, users won't discover --concurrency
-   - Fix: Add --help case with usage examples
-
-2. **Date validation missing**
-   - File: search.ts:25-27
-   - Issue: Invalid dates silently return no results
-   - Fix: Validate ISO format, throw error with example
-
-#### Minor
-1. **Progress indicators**
-   - File: indexer.ts:130
-   - Issue: No "X of Y" counter for long operations
-   - Impact: Users don't know how long to wait
-
-### Recommendations
-- Add progress reporting for user experience
-- Consider config file for excluded projects (portability)
-
-### Assessment
-
-**Ready to merge: With fixes**
-
-**Reasoning:** Core implementation is solid with good architecture and tests. Important issues (help text, date validation) are easily fixed and don't affect core functionality.
+Output:
+Status: Approved | Issues Found
+Strengths:
+- <specific, brief>
+Issues:
+- [Critical|Important|Minor] file:line - issue - why it matters - fix
+Assessment:
+- Ready to merge? Yes | No | With fixes
 ```

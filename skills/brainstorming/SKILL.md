@@ -5,159 +5,60 @@ description: "You MUST use this before any creative work - creating features, bu
 
 # Brainstorming Ideas Into Designs
 
-Help turn ideas into fully formed designs and specs through natural collaborative dialogue.
-
-Start by understanding the current project context, then ask questions one at a time to refine the idea. Once you understand what you're building, present the design and get user approval.
+Turn ideas into approved specs before implementation.
 
 <HARD-GATE>
-Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
+Do not invoke implementation skills, write code, scaffold, or edit behavior until the design is presented and approved. Even simple changes need a short design.
 </HARD-GATE>
 
-## Anti-Pattern: "This Is Too Simple To Need A Design"
+## Flow
 
-Every project goes through this process. A todo list, a single-function utility, a config change — all of them. "Simple" projects are where unexamined assumptions cause the most wasted work. The design can be short (a few sentences for truly simple projects), but you MUST present it and get approval.
+1. Explore project context: files, docs, recent commits, `CONTEXT.md` if present.
+2. If visual decisions are likely, offer the Visual Companion in its own message.
+3. Ask clarifying questions one at a time.
+4. Verify user claims against code before relying on them.
+5. Discover relevant domain skills with `find-skills` before proposing architecture/stack.
+6. Propose 2-3 approaches with trade-offs and recommendation.
+7. Present design sections for approval; revise until approved.
+8. If UI/frontend: save approved mocks to `docs/mocks/` and get approval.
+9. Write lean spec to `docs/specs/YYYY-MM-DD-<topic>-design.md`; self-review; commit.
+10. Ask user to review spec. After approval, invoke `writing-plans`.
 
-## Checklist
+## Clarifying Rules
 
-You MUST create a task for each of these items and complete them in order:
+- One question per message; multiple choice preferred.
+- If scope spans independent subsystems, decompose and spec the first slice only.
+- Challenge vocabulary conflicts with `CONTEXT.md`; update glossary when terms are resolved.
+- Refine fuzzy terms into canonical project vocabulary.
+- Follow existing architecture and patterns; include only refactors needed for the goal.
 
-1. **Explore project context** — check files, docs, recent commits. Read `CONTEXT.md` (domain glossary) if it exists and use its vocabulary throughout.
-2. **Offer visual companion** (if topic will involve visual questions) — this is its own message, not combined with a clarifying question. See the Visual Companion section below.
-3. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
-4. **Propose 2-3 approaches** — with trade-offs and your recommendation
-5. **Present design** — in sections scaled to their complexity, get user approval after each section
-6. **Save visual mocks from companion** — if the project involves UI/frontend: the accepted visual screens and design selections chosen by the user in the Visual Companion are added/copied to `docs/mocks/`. This is a hard gate: the human must approve these mocks before proceeding. Only skip if the user explicitly requests it.
-7. **Write design doc** — save to `docs/specs/YYYY-MM-DD-<topic>-design.md` and commit
-8. **Spec self-review** — quick inline check for placeholders, contradictions, ambiguity, scope (see below)
-9. **User reviews written spec** — ask user to review the spec file before proceeding
-10. **Transition to implementation** — invoke writing-plans skill to create implementation plan (Macro Plan + task files)
+## Design Content
 
-## Process Flow
+Cover only what affects implementation:
+- architecture/components
+- data flow/contracts
+- error handling
+- testing/verification
+- dependencies/constraints
+- out of scope
 
-```dot
-digraph brainstorming {
-    "Explore project context" [shape=box];
-    "Visual questions ahead?" [shape=diamond];
-    "Offer Visual Companion\n(own message, no other content)" [shape=box];
-    "Ask clarifying questions" [shape=box];
-    "Propose 2-3 approaches" [shape=box];
-    "Present design sections" [shape=box];
-    "User approves design?" [shape=diamond];
-    "Has UI/frontend?" [shape=diamond];
-    "Save visual mocks from companion" [shape=box];
-    "User approves mocks?" [shape=diamond];
-    "Write design doc" [shape=box];
-    "Spec self-review\n(fix inline)" [shape=box];
-    "User reviews spec?" [shape=diamond];
-    "Invoke writing-plans skill" [shape=doublecircle];
-
-    "Explore project context" -> "Visual questions ahead?";
-    "Visual questions ahead?" -> "Offer Visual Companion\n(own message, no other content)" [label="yes"];
-    "Visual questions ahead?" -> "Ask clarifying questions" [label="no"];
-    "Offer Visual Companion\n(own message, no other content)" -> "Ask clarifying questions";
-    "Ask clarifying questions" -> "Propose 2-3 approaches";
-    "Propose 2-3 approaches" -> "Present design sections";
-    "Present design sections" -> "User approves design?";
-    "User approves design?" -> "Present design sections" [label="no, revise"];
-    "User approves design?" -> "Has UI/frontend?" [label="yes"];
-    "Has UI/frontend?" -> "Save visual mocks from companion" [label="yes"];
-    "Has UI/frontend?" -> "Write design doc" [label="no"];
-    "Save visual mocks from companion" -> "User approves mocks?";
-    "User approves mocks?" -> "Save visual mocks from companion" [label="no, revise"];
-    "User approves mocks?" -> "Write design doc" [label="yes"];
-    "Write design doc" -> "Spec self-review\n(fix inline)";
-    "Spec self-review\n(fix inline)" -> "User reviews spec?";
-    "User reviews spec?" -> "Write design doc" [label="changes requested"];
-    "User reviews spec?" -> "Invoke writing-plans skill" [label="approved"];
-}
-```
-
-**The terminal state is invoking writing-plans.** Do NOT invoke frontend-design, mcp-builder, or any other implementation skill. The ONLY skill you invoke after brainstorming is writing-plans.
-
-## The Process
-
-**Understanding the idea:**
-
-- Check out the current project state first (files, docs, recent commits)
-- Before asking detailed questions, assess scope: if the request describes multiple independent subsystems (e.g., "build a platform with chat, file storage, billing, and analytics"), flag this immediately. Don't spend questions refining details of a project that needs to be decomposed first.
-- If the project is too large for a single spec, help the user decompose into sub-projects: what are the independent pieces, how do they relate, what order should they be built? Then brainstorm the first sub-project through the normal design flow. Each sub-project gets its own spec → plan → implementation cycle.
-- For appropriately-scoped projects, ask questions one at a time to refine the idea
-- Prefer multiple choice questions when possible, but open-ended is fine too
-- Only one question per message - if a topic needs more exploration, break it into multiple questions
-- Focus on understanding: purpose, constraints, success criteria
-
-**During clarifying questions — language precision:**
-
-- **Challenge against the glossary:** If the user uses a term that conflicts with a definition in `CONTEXT.md`, call it out immediately before moving on. Example: "Your glossary defines 'cancellation' as X, but you seem to mean Y — which is it?" Do not let conflicting vocabulary accumulate.
-- **Refine fuzzy language:** When the user uses vague or overloaded terms, propose a precise canonical name. Example: "You're saying 'account' — do you mean Customer or User? They're different things in this codebase." Pin the term before continuing. Once resolved, update `CONTEXT.md` with the agreed definition (see below).
-
-**Cross-reference with code:**
-
-After exploring context and before proposing approaches, verify factual claims the user makes about how the system works. If the user says "X works like Y," check whether the code agrees. If you find a contradiction, surface it directly before proceeding: "Your code cancels entire Orders, but you just said partial cancellation is possible — which is correct?" Resolve contradictions explicitly; don't paper over them in the design.
-
-**Exploring approaches:**
-
-1. **Discover domain skills first:** Before proposing approaches, load `find-skills` and search for skills relevant to the feature domain (e.g., "react", "flutter", "hono", "frontend design", "api"). Review results and factor them into approach recommendations. If a high-quality skill exists for the domain, the approach should align with its conventions.
-2. **Propose 2-3 different approaches with trade-offs**, informed by discovered skills.
-3. **Present options conversationally** with your recommendation and reasoning.
-4. **Lead with your recommended option** and explain why, including how it leverages any discovered skills.
-
-**Presenting the design:**
-
-- Once you believe you understand what you're building, present the design
-- **Before defining technologies, architecture, folder structure, or endpoints: check for relevant skills.** Use the `skill` tool to discover and load any skills related to the tech stack or architecture (e.g., `flutter-apply-architecture-best-practices`, `hono-api-best-practices`, `react-best-practices`). If such skills exist, the design MUST align with their conventions — do not invent alternative structures or technologies that contradict them.
-- Scale each section to its complexity: prefer a few precise sentences; expand only for decisions that would otherwise be ambiguous
-- Ask after each section whether it looks right so far
-- Cover: architecture, components, data flow, error handling, testing
-- Be ready to go back and clarify if something doesn't make sense
-
-**Design for isolation and clarity:**
-
-- Break the system into smaller units that each have one clear purpose, communicate through well-defined interfaces, and can be understood and tested independently
-- For each unit, you should be able to answer: what does it do, how do you use it, and what does it depend on?
-- Can someone understand what a unit does without reading its internals? Can you change the internals without breaking consumers? If not, the boundaries need work.
-- Smaller, well-bounded units are also easier for you to work with - you reason better about code you can hold in context at once, and your edits are more reliable when files are focused. When a file grows large, that's often a signal that it's doing too much.
-
-**Working in existing codebases:**
-
-- Explore the current structure before proposing changes. Follow existing patterns.
-- Where existing code has problems that affect the work (e.g., a file that's grown too large, unclear boundaries, tangled responsibilities), include targeted improvements as part of the design - the way a good developer improves code they're working in.
-- Don't propose unrelated refactoring. Stay focused on what serves the current goal.
-
-## After the Design
-
-**Keeping CONTEXT.md current:**
-
-Whenever a term is resolved or clarified during the brainstorming session — whether challenged against the glossary or refined from fuzzy language — update `CONTEXT.md` immediately, not at the end. `CONTEXT.md` contains only the domain glossary: term definitions and their precise meanings. Do not add implementation details, spec decisions, or rationale there. Follow the format defined in the `domain-glossary` skill.
-
-**Documentation:**
-
-- Write the validated design (spec) to `docs/specs/YYYY-MM-DD-<topic>-design.md`
-  - (User preferences for spec location override this default)
-- Use elements-of-style:writing-clearly-and-concisely skill if available
-- Commit the design document to git
+Prefer a few precise sentences. Expand only where brevity would create ambiguity.
 
 ## Lean Spec Contract
-
-Every spec document (`docs/specs/YYYY-MM-DD-<topic>-design.md`) MUST be compact and implementation-ready.
-
-Use the fewest words that preserve testable behavior, scope, constraints, and risks.
-
-Required shape:
 
 ```markdown
 # <Topic> Design
 
 ## Problem / Opportunity
-<1 short paragraph: what problem, who benefits, why now>
+<1 short paragraph>
 
 ## Functional Requirements & Acceptance Criteria
 | ID | Requirement | Acceptance Criteria |
 |----|-------------|---------------------|
-| FR1 | <atomic, measurable behavior> | Given <state>, when <action>, then <observable result>. |
+| FR1 | <atomic measurable behavior> | Given <state>, when <action>, then <observable result>. |
 
 ## Constraints & Non-Functional Requirements
-- <performance/security/accessibility/compatibility constraint, only if real>
+- <real constraint> | None
 
 ## Out of Scope
 - <explicit exclusion>
@@ -171,95 +72,38 @@ Required shape:
 | <real risk> | <concrete mitigation> |
 ```
 
-Lean spec rules:
-- Target **3-8 FRs**. More usually means split the spec.
-- Each FR must be atomic, measurable, independent, and user/system-observable.
-- Acceptance criteria may be compact, but must remain Given/When/Then or equivalently testable.
-- Constraints, dependencies, and risks should list only real items. Write `None` when empty.
-- Do not add architecture, file structure, implementation steps, or task breakdown unless needed to remove ambiguity. Those belong in `writing-plans`.
-- Do not pad with rationale after a decision is clear.
+Rules:
+- Target 3-8 FRs; split if larger.
+- ACs must be testable, even if compact.
+- Do not include task breakdown; that belongs in `writing-plans`.
+- Write `None` for empty sections.
 
-**Spec Self-Review:**
-Fix issues inline:
+Self-review: no placeholders, all sections present, FR/ACs measurable, no contradictions, coherent scope, no prose that does not affect implementation/verification/scope.
 
-1. **No placeholders:** no "TBD", "TODO", empty sections, or vague requirements.
-2. **Template compliance:** all required sections are present, even if some say `None`.
-3. **Measurable FR/ACs:** every requirement can become a test or verification step.
-4. **Consistency:** no contradictions between scope, constraints, dependencies, and risks.
-5. **Scope:** one coherent implementation plan; split if it spans independent subsystems.
-6. **Token check:** remove prose that does not change implementation, verification, or scope.
+## User Review Gate
 
-Concise specs are preferred. Brevity is a defect only when it creates ambiguity, missing behavior, or unverifiable acceptance criteria.
+After writing and committing the spec:
 
-**User Review Gate:**
-After the spec review loop passes, ask the user to review the written spec before proceeding:
+```text
+Spec written and committed to `<path>`. Please review it and let me know if you want changes before we start the implementation plan.
+```
 
-> "Spec written and committed to `<path>`. Please review it and let me know if you want to make any changes before we start writing out the implementation plan."
-
-Wait for the user's response. If they request changes, make them and re-run the spec review loop. Only proceed once the user approves.
-
-**Plan Generation:**
-
-- Invoke the writing-plans skill to create the implementation plan
-- The plan will be a directory: `docs/plans/YYYY-MM-DD-<feature-name>/`
-  - `plan.md` — Macro Plan (roadmap + file structure + required skills)
-  - `task-01-*.md`, `task-02-*.md`, ... — Individual self-contained task files
-- Do NOT invoke any other skill. writing-plans is the next step.
-
-## Key Principles
-
-- **One question at a time** - Don't overwhelm with multiple questions
-- **Multiple choice preferred** - Easier to answer than open-ended when possible
-- **YAGNI ruthlessly** - Remove unnecessary features from all designs
-- **Explore alternatives** - Always propose 2-3 approaches before settling
-- **Incremental validation** - Present design, get approval before moving on
-- **Be flexible** - Go back and clarify when something doesn't make sense
+Wait. If changed, update spec and re-run self-review.
 
 ## Visual Companion
 
-A browser-based companion for showing mockups, diagrams, and visual options during brainstorming. Available as a tool — not a mode. Accepting the companion means it's available for questions that benefit from visual treatment; it does NOT mean every question goes through the browser.
+Offer only when upcoming questions are visual:
 
-**Offering the companion:** When you anticipate that upcoming questions will involve visual content (mockups, layouts, diagrams), offer it once for consent:
-> "Some of what we're working on might be easier to explain if I can show it to you in a web browser. I can put together mockups, diagrams, comparisons, and other visuals as we go. This feature is still new and can be token-intensive. Want to try it? (Requires opening a local URL)"
+```text
+Some of what we're working on might be easier to explain if I can show it to you in a web browser. I can put together mockups, diagrams, comparisons, and other visuals as we go. This feature is still new and can be token-intensive. Want to try it? (Requires opening a local URL)
+```
 
-**This offer MUST be its own message.** Do not combine it with clarifying questions, context summaries, or any other content. The message should contain ONLY the offer above and nothing else. Wait for the user's response before continuing. If they decline, proceed with text-only brainstorming.
+This offer must be the only content in that message. If accepted, read `visual-companion.md`.
 
-**Per-question decision:** Even after the user accepts, decide FOR EACH QUESTION whether to use the browser or the terminal. The test: **would the user understand this better by seeing it than reading it?**
+Use browser visuals for mockups/layout diagrams/comparisons. Use text for conceptual choices, scope, requirements, and trade-offs.
 
-- **Use the browser** for content that IS visual — mockups, wireframes, layout comparisons, architecture diagrams, side-by-side visual designs
-- **Use the terminal** for content that is text — requirements questions, conceptual choices, tradeoff lists, A/B/C/D text options, scope decisions
+For UI/frontend work, save approved companion outputs to `docs/mocks/` before writing the spec; read `visual-mocks.md` for the exact save workflow.
 
-A question about a UI topic is not automatically a visual question. "What does personality mean in this context?" is a conceptual question — use the terminal. "Which wizard layout works better?" is a visual question — use the browser.
+## After Approval
 
-If they agree to the companion, read the detailed guide before proceeding:
-`skills/brainstorming/visual-companion.md`
-
-## Visual Mocks
-
-After the user approves the conceptual design, if the project involves UI/frontend, you MUST save the accepted screens from the Visual Companion as visual mocks in `docs/mocks/` before writing the design doc or invoking writing-plans. This is a **hard gate**: do not proceed without explicit user approval of these mocks.
-
-### Purpose
-
-The visual mocks are static HTML files saved in `docs/mocks/` that represent the approved screens/components chosen during the Visual Companion session. They serve as the **visual contract** between human and agent. Every frontend task in the implementation plan will reference these mocks.
-
-### Rules
-
-- **Source**: Directly populated and completed using the screens accepted by the user during the Visual Companion session.
-- **Location**: Save each approved screen in `docs/mocks/<screen-name>.html` (or `docs/mocks/index.html` if it's a unified layout).
-- **Static**: No active development is done directly in these files; they are copy-pasted/saved versions of the final states approved in the companion.
-
-### Process
-
-1. After the user approves the conceptual design, check: does this project have UI/frontend?
-   - If yes: proceed to step 2.
-   - If no: skip to writing the design doc.
-2. Save the final accepted screens from the Visual Companion session (located in `brainstorm/<session-id>/content/`) directly to `docs/mocks/`.
-3. Present the mocks to the user:
-   > "I've saved the accepted screens from the companion as visual mocks in `docs/mocks/`. Please verify them. Once confirmed, we will write the design doc and proceed."
-4. If the user requests changes, run the Visual Companion again, iterate, and save the updated version to `docs/mocks/` (e.g., `<screen-name>-v2.html`).
-5. Once approved, proceed to write the design doc and then invoke `writing-plans`.
-
-### Link to detailed guide
-
-For the full guide on how mocks are populated from the companion, read:
-`skills/brainstorming/visual-mocks.md`
+Invoke `writing-plans`. Do not invoke implementation skills directly from brainstorming.
