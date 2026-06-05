@@ -106,7 +106,7 @@ After exploring context and before proposing approaches, verify factual claims t
 
 - Once you believe you understand what you're building, present the design
 - **Before defining technologies, architecture, folder structure, or endpoints: check for relevant skills.** Use the `skill` tool to discover and load any skills related to the tech stack or architecture (e.g., `flutter-apply-architecture-best-practices`, `hono-api-best-practices`, `react-best-practices`). If such skills exist, the design MUST align with their conventions — do not invent alternative structures or technologies that contradict them.
-- Scale each section to its complexity: a few sentences if straightforward, up to 200-300 words if nuanced
+- Scale each section to its complexity: prefer a few precise sentences; expand only for decisions that would otherwise be ambiguous
 - Ask after each section whether it looks right so far
 - Cover: architecture, components, data flow, error handling, testing
 - Be ready to go back and clarify if something doesn't make sense
@@ -137,45 +137,59 @@ Whenever a term is resolved or clarified during the brainstorming session — wh
 - Use elements-of-style:writing-clearly-and-concisely skill if available
 - Commit the design document to git
 
-## Spec Template
+## Lean Spec Contract
 
-Every spec document (`docs/specs/YYYY-MM-DD-<topic>-design.md`) MUST include these sections:
+Every spec document (`docs/specs/YYYY-MM-DD-<topic>-design.md`) MUST be compact and implementation-ready.
 
-### 1. Problem / Opportunity
-One paragraph: what are we solving and why does it matter?
+Use the fewest words that preserve testable behavior, scope, constraints, and risks.
 
-### 2. Functional Requirements (FRs)
-A numbered list of behaviors the system MUST exhibit. Each requirement must be:
-- **Atomic**: one behavior per item
-- **Measurable**: you can write a test that proves it
-- **Independent**: doesn't depend on another requirement to make sense
+Required shape:
 
-### 3. Acceptance Criteria (ACs)
-For each FR, define Given/When/Then conditions for completion.
+```markdown
+# <Topic> Design
 
-### 4. Constraints & Non-Functional Requirements
-Performance, security, scalability, accessibility, compatibility.
+## Problem / Opportunity
+<1 short paragraph: what problem, who benefits, why now>
 
-### 5. Out of Scope
-Explicitly list what this spec does NOT cover.
+## Functional Requirements & Acceptance Criteria
+| ID | Requirement | Acceptance Criteria |
+|----|-------------|---------------------|
+| FR1 | <atomic, measurable behavior> | Given <state>, when <action>, then <observable result>. |
 
-### 6. Dependencies
-External services, libraries, or internal systems.
+## Constraints & Non-Functional Requirements
+- <performance/security/accessibility/compatibility constraint, only if real>
 
-### 7. Risks & Mitigations
-What could go wrong and how to handle it.
+## Out of Scope
+- <explicit exclusion>
+
+## Dependencies
+- <service/library/internal system> | None
+
+## Risks & Mitigations
+| Risk | Mitigation |
+|------|------------|
+| <real risk> | <concrete mitigation> |
+```
+
+Lean spec rules:
+- Target **3-8 FRs**. More usually means split the spec.
+- Each FR must be atomic, measurable, independent, and user/system-observable.
+- Acceptance criteria may be compact, but must remain Given/When/Then or equivalently testable.
+- Constraints, dependencies, and risks should list only real items. Write `None` when empty.
+- Do not add architecture, file structure, implementation steps, or task breakdown unless needed to remove ambiguity. Those belong in `writing-plans`.
+- Do not pad with rationale after a decision is clear.
 
 **Spec Self-Review:**
-After writing the spec document, look at it with fresh eyes:
+Fix issues inline:
 
-1. **Placeholder scan:** Any "TBD", "TODO", incomplete sections, or vague requirements? Fix them.
-2. **Spec Template compliance:** Does the spec have all mandatory sections (Problem, FRs, ACs, Constraints, Out of Scope)?
-3. **Internal consistency:** Do any sections contradict each other? Does the architecture match the feature descriptions?
-4. **Scope check:** Is this focused enough for a single implementation plan, or does it need decomposition?
-5. **Ambiguity check:** Could any requirement be interpreted two different ways? If so, pick one and make it explicit.
-6. **Acceptance Criteria check:** Are the ACs measurable and unambiguous?
+1. **No placeholders:** no "TBD", "TODO", empty sections, or vague requirements.
+2. **Template compliance:** all required sections are present, even if some say `None`.
+3. **Measurable FR/ACs:** every requirement can become a test or verification step.
+4. **Consistency:** no contradictions between scope, constraints, dependencies, and risks.
+5. **Scope:** one coherent implementation plan; split if it spans independent subsystems.
+6. **Token check:** remove prose that does not change implementation, verification, or scope.
 
-Fix any issues inline. No need to re-review — just fix and move on.
+Concise specs are preferred. Brevity is a defect only when it creates ambiguity, missing behavior, or unverifiable acceptance criteria.
 
 **User Review Gate:**
 After the spec review loop passes, ask the user to review the written spec before proceeding:

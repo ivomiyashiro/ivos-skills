@@ -31,6 +31,9 @@ Task tool (general-purpose):
     interpreted two different ways — those are issues. Minor wording improvements,
     stylistic preferences, and "sections less detailed than others" are not.
 
+    Concise specs are preferred. Do not ask for more prose when the requirement,
+    acceptance criteria, scope, constraints, and risks are already testable.
+
     Approve unless there are serious gaps that would lead to a flawed plan.
 
     ## Output Format
