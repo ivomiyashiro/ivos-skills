@@ -6,7 +6,7 @@ import type { Db } from '@shared/db/client';
 
 /**
  * buildTestDb — arranca pglite (Postgres compilado a WASM, in-process), aplica
- * el schema del modulo examples y retorna { db, close }.
+ * el schema de la feature examples y retorna { db, close }.
  *
  * El cast `as unknown as Db` es seguro mientras los handlers usen solo APIs
  * compatibles entre `drizzle-orm/postgres-js` y `drizzle-orm/pglite`

@@ -107,10 +107,10 @@ default.
 
 ## Custom métricas
 
-Por modulo:
+Por feature:
 
 ```ts
-// modules/quotes/quotes.metrics.ts
+// features/quotes/quotes.metrics.ts
 import { Counter, registry } from '@shared/observability/metrics';
 
 export const quotesCreatedTotal = new Counter({
@@ -121,7 +121,7 @@ export const quotesCreatedTotal = new Counter({
 });
 ```
 
-Y en el command handler:
+Y en el command:
 
 ```ts
 quotesCreatedTotal.inc({ status: 'draft' });

@@ -1,13 +1,13 @@
 # Read Models
 
-La version anterior de esta skill usaba `ReadContext` como patron principal. En el
-layout actual, preferir **read models** en `infrastructure/` para queries complejas
-o recurrentes.
+La versión anterior de esta skill usaba `ReadContext` como patrón principal. En el
+layout actual, preferir **read models** en `repository/` para queries complejas o
+recurrentes.
 
 ## Forma
 
 ```ts
-// modules/projects/infrastructure/project-read-model.ts
+// features/projects/repository/project-read-model.ts
 export class ProjectReadModel {
   constructor(private readonly db: Db) {}
 
@@ -17,20 +17,20 @@ export class ProjectReadModel {
 }
 ```
 
-## Cuándo Usar Db Raw En Handler
+## Cuándo Usar Db Raw En Query
 
-Para queries muy chicas, el handler puede recibir `{ db }` directo. Si la query crece,
-extraer a read model.
+Para queries muy chicas, el use case puede recibir `{ db }` directo. Si la query
+crece, extraer a read model.
 
 ## Reglas
 
-- Read models devuelven DTOs/read shapes, no agregados.
+- Read models devuelven DTOs/read shapes, no entidades de write-side.
 - Read models pueden usar joins, CTEs o raw SQL.
 - No mutar estado desde read models.
 - No reutilizar repositories de write-side para listados.
 
 ## Compartir Reads
 
-Si una proyeccion se repite en el mismo modulo, helper privado o read model. Si se
-repite entre modulos, evaluar si es un concepto shared real o si cada modulo debe
+Si una proyección se repite en la misma feature, helper privado o read model. Si se
+repite entre features, evaluar si es un concepto shared real o si cada feature debe
 mantener su propio DTO.

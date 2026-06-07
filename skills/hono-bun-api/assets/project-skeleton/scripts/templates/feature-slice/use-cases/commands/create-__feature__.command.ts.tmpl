@@ -1,0 +1,45 @@
+import { success, type Result } from '@shared/result';
+import type { AppError } from '@shared/errors/app-error';
+import type { Logger } from '@shared/observability/logger';
+import type { EventBus } from '@shared/events/event-bus';
+import type { Db } from '@shared/db/client';
+import type { TransactionManager } from '@shared/db/transaction';
+import type { Clock } from '@/container';
+import type { __Feature__Repository } from '../../repository/__feature__.repository';
+import { __Feature__ } from '../../utils/__feature__.entity';
+import type { __Feature__Dto } from '../../__features__.schemas';
+
+export type Create__Feature__Command = {
+  name: string;
+  actorId: string | null;
+};
+
+export type Create__Feature__Deps = {
+  createRepo: (db: Db) => __Feature__Repository;
+  tx: TransactionManager;
+  eventBus: EventBus;
+  logger: Logger;
+  clock: Clock;
+};
+
+export const create__Feature__Command = async (
+  deps: Create__Feature__Deps,
+  command: Create__Feature__Command,
+): Promise<Result<__Feature__Dto, AppError>> => {
+  const entity = __Feature__.create({ name: command.name, now: deps.clock.now() });
+
+  await deps.tx.run(async (db) => {
+    await deps.createRepo(db).save(entity);
+  });
+
+  deps.eventBus.publishMany(entity.pullEvents());
+  deps.logger.info({ id: entity.id, actorId: command.actorId }, '__feature__ created');
+
+  return success({
+    id: entity.id,
+    name: entity.name,
+    status: entity.status,
+    createdAt: entity.createdAt.toISOString(),
+    updatedAt: entity.updatedAt.toISOString(),
+  });
+};

@@ -1,8 +1,8 @@
 import pino from 'pino';
 import type { EventBus, DomainEvent } from '@shared/events/event-bus';
 import { createTransactionManager } from '@shared/db/transaction';
-import { DrizzleExampleRepository } from '@modules/examples/infrastructure/drizzle-example.repository';
-import { ExampleReadModel } from '@modules/examples/infrastructure/example-read-model';
+import { DrizzleExampleRepository } from '@features/examples/repository/drizzle-example.repository';
+import { ExampleReadModel } from '@features/examples/repository/example-read-model';
 import type { Clock } from '@/container';
 import type { AppContainer } from '@/container';
 import { buildTestDb } from './db';

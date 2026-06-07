@@ -1,6 +1,6 @@
 {
   "name": "ivos-skills",
-  "version": "1.1.9",
+  "version": "1.1.10",
   "description": "A collection of skills for software development workflows: debugging, planning, Flutter, React, Hono/Bun APIs, Supabase, git, code review, and more.",
   "author": {
     "name": "Ivan Miyashiro",

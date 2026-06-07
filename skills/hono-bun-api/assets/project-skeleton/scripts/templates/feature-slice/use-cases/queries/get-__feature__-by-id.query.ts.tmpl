@@ -1,0 +1,25 @@
+import { failure, success, type Result } from '@shared/result';
+import { notFound, type AppError } from '@shared/errors/app-error';
+import type { __Feature__ReadModel } from '../../repository/__feature__-read-model';
+import type { __Feature__Dto } from '../../__features__.schemas';
+
+export type Get__Feature__ByIdQuery = {
+  id: string;
+  actorId: string | null;
+};
+
+export type Get__Feature__ByIdDeps = {
+  readModel: __Feature__ReadModel;
+};
+
+export const get__Feature__ByIdQuery = async (
+  deps: Get__Feature__ByIdDeps,
+  query: Get__Feature__ByIdQuery,
+): Promise<Result<__Feature__Dto, AppError>> => {
+  void query.actorId;
+
+  const entity = await deps.readModel.getById(query.id);
+  if (!entity) return failure(notFound('__Feature__', query.id));
+
+  return success(entity);
+};

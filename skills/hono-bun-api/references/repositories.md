@@ -1,17 +1,19 @@
 # Repositories
 
-Los repositorios son fronteras de persistencia para agregados de dominio. No son una
-abstraccion universal de SQL.
+Los repositories son fronteras de persistencia de una feature. No son una
+abstracción universal de SQL.
 
-## Ubicacion
+## Ubicación
 
 ```txt
-modules/projects/domain/project.repository.ts
-modules/projects/infrastructure/drizzle-project.repository.ts
-modules/projects/infrastructure/project.mapper.ts
+features/projects/repository/
+  project.repository.ts
+  drizzle-project.repository.ts
+  project.mapper.ts
+  project-read-model.ts
 ```
 
-## Interfaz En Domain
+## Contrato
 
 ```ts
 export interface ProjectRepository {
@@ -21,14 +23,15 @@ export interface ProjectRepository {
 }
 ```
 
-Permitir otros metodos solo si son necesarios para write-side:
+Permitir otros métodos solo si son necesarios para write-side:
+
 - `findByNaturalId`
 - `findByIdempotencyKey`
 - `existsBySlug`
 
 No agregar listados, search, stats o DTOs.
 
-## Implementacion Drizzle
+## Implementación Drizzle
 
 ```ts
 export class DrizzleProjectRepository implements ProjectRepository {
@@ -39,7 +42,7 @@ export class DrizzleProjectRepository implements ProjectRepository {
       where: eq(projects.id, id),
     });
 
-    return row ? ProjectMapper.toDomain(row) : null;
+    return row ? ProjectMapper.toEntity(row) : null;
   }
 
   async save(project: Project): Promise<void> {
@@ -53,20 +56,16 @@ export class DrizzleProjectRepository implements ProjectRepository {
         set: row,
       });
   }
-
-  async delete(id: string): Promise<void> {
-    await this.db.delete(projects).where(eq(projects.id, id));
-  }
 }
 ```
 
 ## Mappers
 
-El mapper traduce entre persistencia y dominio:
+El mapper traduce entre persistencia y entidad/modelo local:
 
 ```ts
 export const ProjectMapper = {
-  toDomain(row: ProjectRow): Project {
+  toEntity(row: ProjectRow): Project {
     return Project.rehydrate({
       id: row.id,
       organizationId: row.organizationId,
@@ -92,22 +91,27 @@ export const ProjectMapper = {
 
 ## Buen Uso
 
-Usar repo cuando:
-- se necesita mutar un agregado
+Usar repository cuando:
+
+- se necesita mutar estado
 - hay invariantes que proteger
 - se requiere optimistic locking/versionado
 - el command necesita cargar estado antes de decidir
 
-No usar repo cuando:
+No usar repository de write-side cuando:
+
 - se arma un dashboard
 - se lista con filtros
 - se busca texto
 - se calculan stats
 - se devuelve un DTO read-only
 
+Para esos casos, crear un read model en `repository/` o usar Drizzle directo desde
+la query si la consulta es chica.
+
 ## Transacciones
 
-Si el command corre dentro de transaccion, crear repos con el handle transaccional:
+Si el command corre dentro de transacción, crear repos con el handle transaccional:
 
 ```ts
 await tx.run(async (db) => {
@@ -120,7 +124,7 @@ await tx.run(async (db) => {
 
 - `ProjectRepository.list(...)`
 - `ProjectRepository.getDashboard(...)`
-- repo que retorna DTOs publicos
+- repo que retorna DTOs públicos
 - repo que importa Hono/logger/auth
 - repo que contiene reglas de negocio
-- repo compartido entre modulos sin ownership claro
+- repo compartido entre features sin ownership claro

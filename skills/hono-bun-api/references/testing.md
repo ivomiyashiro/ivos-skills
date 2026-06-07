@@ -3,18 +3,18 @@
 ## Stack
 
 - **bun:test** — built-in, zero config, Jest-compatible API.
-- **app.request()** — método de Hono para tests in-memory (no port binding).
+- **app.request()** — método de Hono para tests in-memory.
 - **pglite** o **testcontainers** para DB efímera en integration tests.
 
-## Unidad: handlers con deps mockeadas
+## Unidad: use cases con deps fake
 
-Los handlers son funciones puras async. Mockear es construir el record `deps`:
+Los use cases son funciones puras async. Mockear es construir el record `deps`:
 
 ```ts
-import { describe, test, expect, mock } from 'bun:test';
-import { createExampleHandler } from './commands/create-example';
+import { describe, expect, mock, test } from 'bun:test';
+import { createExampleCommand } from './use-cases/commands/create-example.command';
 
-describe('createExampleHandler', () => {
+describe('createExampleCommand', () => {
   test('persiste, emite evento y retorna DTO', async () => {
     const repo = {
       findById: mock(async () => null),
@@ -27,166 +27,92 @@ describe('createExampleHandler', () => {
       on: mock(() => {}),
       off: mock(() => {}),
     };
+    const tx = { run: (fn: (db: unknown) => unknown) => fn({}) };
     const clock = { now: () => new Date('2026-05-12T00:00:00Z') };
 
-    const result = await createExampleHandler(
-      { repo, eventBus, logger: silentLogger, clock, userId: 'u1' },
-      { name: 'test' },
+    const result = await createExampleCommand(
+      {
+        createRepo: () => repo,
+        tx,
+        eventBus,
+        logger: silentLogger,
+        clock,
+      },
+      { name: 'test', actorId: 'u1' },
     );
 
     expect(result.ok).toBe(true);
     expect(repo.save).toHaveBeenCalledTimes(1);
-    expect(eventBus.publish).toHaveBeenCalledTimes(1);
-    expect(eventBus.publish).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'ExampleCreated' }),
-    );
-  });
-
-  test('retorna NotFound si no existe (en updateHandler)', async () => {
-    const repo = {
-      findById: mock(async () => null),
-      save: mock(async () => {}),
-      delete: mock(async () => {}),
-    };
-    const result = await updateExampleHandler(
-      { repo, eventBus: noopBus, logger: silentLogger, clock: fixedClock },
-      { id: crypto.randomUUID(), input: { name: 'new' } },
-    );
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error.kind).toBe('NotFound');
+    expect(eventBus.publishMany).toHaveBeenCalledTimes(1);
   });
 });
-```
-
-## Logger silencioso para tests
-
-```ts
-// test/helpers.ts
-import pino from 'pino';
-export const silentLogger = pino({ level: 'silent' });
 ```
 
 ## Integration: app.request()
 
 ```ts
-import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
-import { buildApp, systemClock } from '@/app';
-import { createEventBus } from '@shared/events/event-bus';
-import { silentLogger } from '../helpers';
-import { buildTestDb, teardownTestDb } from '../helpers/db';
-
-let app: ReturnType<typeof buildApp>;
-let db: Awaited<ReturnType<typeof buildTestDb>>;
-
-beforeAll(async () => {
-  db = await buildTestDb();
-  app = buildApp({
-    db,
-    logger: silentLogger,
-    eventBus: createEventBus(),
-    clock: systemClock,
-  });
-});
-
-afterAll(async () => {
-  await teardownTestDb(db);
-});
+import { describe, expect, test } from 'bun:test';
+import { buildApp } from '@/app';
+import { createTestContainer } from '@test/helpers';
 
 describe('POST /examples', () => {
   test('201 con input válido', async () => {
+    const container = await createTestContainer();
+    const app = buildApp(container);
+
     const res = await app.request('/examples', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ name: 'hola' }),
     });
+
     expect(res.status).toBe(201);
-    const body = await res.json();
-    expect(body.name).toBe('hola');
-  });
-
-  test('422 con body vacío', async () => {
-    const res = await app.request('/examples', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({}),
-    });
-    expect(res.status).toBe(422);
-  });
-});
-
-describe('GET /examples/:id', () => {
-  test('404 si no existe', async () => {
-    const res = await app.request(`/examples/${crypto.randomUUID()}`);
-    expect(res.status).toBe(404);
   });
 });
 ```
 
-## DB efímera: pglite
-
-```bash
-bun add -D @electric-sql/pglite
-```
+## DB Efímera: pglite
 
 ```ts
-// test/helpers/db.ts
 import { PGlite } from '@electric-sql/pglite';
 import { drizzle } from 'drizzle-orm/pglite';
-import * as schema from '@shared/db/schema';
 import { sql } from 'drizzle-orm';
+import * as schema from '@shared/db/schema';
 
 export const buildTestDb = async () => {
   const client = new PGlite();
   const db = drizzle(client, { schema });
-  // ejecutar migrations (o sql raw para test)
+
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS examples (...);
   `);
-  return db;
-};
 
-export const teardownTestDb = async (db: any) => {
-  // PGlite cleanup es automático cuando se garbage-collecta
+  return { db, close: () => client.close() };
 };
 ```
 
-pglite es Postgres compilado a WASM. Corre in-process, no necesita Docker. Para
-queries simples es más que suficiente.
+pglite corre in-process y no necesita Docker. Para features avanzadas de Postgres
+que no cubra pglite, usar testcontainers.
 
-## DB efímera: testcontainers (alternativa)
-
-```bash
-bun add -D testcontainers
-```
-
-```ts
-import { PostgreSqlContainer } from 'testcontainers';
-
-const container = await new PostgreSqlContainer('postgres:16-alpine').start();
-const url = container.getConnectionUri();
-const db = buildDb(url);
-// ... migraciones
-// teardown: await container.stop();
-```
-
-Más lento (arranca Docker), pero Postgres real. Útil si pglite no cubre algún feature
-de Postgres que usás (extensions, etc.).
-
-## Tests por modulo
+## Tests Por Feature
 
 Tests viven al lado del código:
 
-```
-modules/quotes/
-  commands/create-quote.ts
-  commands/create-quote.test.ts        # unit
-  queries/list-quotes.ts
-  queries/list-quotes.test.ts          # unit
-  routes.ts
-  routes.test.ts                       # integration
+```txt
+features/quotes/
+  use-cases/
+    commands/
+      create-quote.command.ts
+      create-quote.command.test.ts
+    queries/
+      list-quotes.query.ts
+      list-quotes.query.test.ts
+  routes/
+    quotes.routes.ts
+    quotes.routes.test.ts
 ```
 
-Esto mantiene todo el modulo en una carpeta, con capas internas claras.
+Esto mantiene toda la feature en una carpeta, con responsabilidades internas claras.
 
 ## Cobertura
 
@@ -194,52 +120,21 @@ Esto mantiene todo el modulo en una carpeta, con capas internas claras.
 bun test --coverage
 ```
 
-bun:test reporta cobertura native. No hay que configurar Istanbul.
-
-## Tests de migrations
-
-```ts
-test('migrations son idempotentes', async () => {
-  const db = await buildTestDb();
-  await runMigrations(db);
-  await runMigrations(db);  // no debería tirar
-});
-```
-
-## Time-based tests
+## Time-Based Tests
 
 Usar `clock` mockeable:
 
 ```ts
 const fixedClock = { now: () => new Date('2026-05-12T12:00:00Z') };
-await handler({ ...deps, clock: fixedClock }, input);
+await createExampleCommand({ ...deps, clock: fixedClock }, input);
 ```
 
-Para timers reales (setTimeout dentro del handler), usar `bun:test`'s fake timers:
+Para timers reales, usar fake timers de `bun:test`.
 
-```ts
-import { setSystemTime } from 'bun:test';
-beforeEach(() => setSystemTime(new Date('2026-05-12')));
-```
+## Mocks vs Fakes
 
-## Mocks vs spies vs fakes
+Preferir fake records explícitos sobre mock global:
 
-| Tool | Cuándo |
-|---|---|
-| `mock(fn)` | Reemplazar función con stub trackable. |
-| `spyOn(obj, 'method')` | Espiar sin reemplazar implementación. |
-| Fake records | Para `deps` — construir un objeto con los métodos necesarios. |
-
-Para `deps`, **preferí fake records** sobre `mock.module()` — más explícito, menos
-magia, no interfiere entre tests.
-
-## Anti-patrones
-
-- ❌ `mock.module('@shared/db/client')` para mockear DB globalmente. Frágil.
-  Pasar `db` como dep al handler.
-- ❌ Tests que comparten estado entre `describe` blocks. Cada test debería ser
-  independiente o usar `beforeEach` para reset.
-- ❌ Tests que tocan el filesystem real. Usar pglite o mocks.
-- ❌ Tests dependientes del orden. Cada test debe pasar aislado.
-- ❌ Tests que esperan miles de ms. Si necesitás esperar, usar `await` con un
-  helper determinístico.
+- ✅ `createRepo: () => fakeRepo`
+- ✅ `readModel: fakeReadModel`
+- ❌ `mock.module('@shared/db/client')` para mockear DB globalmente

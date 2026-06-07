@@ -1,0 +1,91 @@
+import { createRoute, z } from '@hono/zod-openapi';
+import { createApiRouter } from '@shared/hono/router';
+import type { AppContainer } from '@/container';
+import {
+  Create__Feature__Input,
+  Update__Feature__Input,
+  __Feature__Dto,
+  __Feature__IdParam,
+  List__Features__Query,
+  List__Features__Response,
+} from '../__features__.schemas';
+import {
+  create__Feature__Controller,
+  get__Feature__Controller,
+  list__Features__Controller,
+  update__Feature__Controller,
+} from '../controller/__features__.controller';
+
+export const build__Features__Routes = (container: AppContainer) => {
+  const r = createApiRouter();
+  const ErrorBody = z.object({ kind: z.string() }).passthrough().openapi('ErrorBody');
+
+  r.openapi(
+    createRoute({
+      method: 'post',
+      path: '/',
+      tags: ['__features__'],
+      summary: 'Create a __feature__',
+      request: {
+        body: { content: { 'application/json': { schema: Create__Feature__Input } } },
+      },
+      responses: {
+        201: { description: 'Created', content: { 'application/json': { schema: __Feature__Dto } } },
+        422: { description: 'Validation error', content: { 'application/json': { schema: ErrorBody } } },
+      },
+    }),
+    create__Feature__Controller(container) as any,
+  );
+
+  r.openapi(
+    createRoute({
+      method: 'put',
+      path: '/{id}',
+      tags: ['__features__'],
+      summary: 'Update a __feature__',
+      request: {
+        params: __Feature__IdParam,
+        body: { content: { 'application/json': { schema: Update__Feature__Input } } },
+      },
+      responses: {
+        200: { description: 'Updated', content: { 'application/json': { schema: __Feature__Dto } } },
+        403: { description: 'Forbidden', content: { 'application/json': { schema: ErrorBody } } },
+        404: { description: 'Not found', content: { 'application/json': { schema: ErrorBody } } },
+        422: { description: 'Validation error', content: { 'application/json': { schema: ErrorBody } } },
+      },
+    }),
+    update__Feature__Controller(container) as any,
+  );
+
+  r.openapi(
+    createRoute({
+      method: 'get',
+      path: '/{id}',
+      tags: ['__features__'],
+      summary: 'Get a __feature__ by ID',
+      request: { params: __Feature__IdParam },
+      responses: {
+        200: { description: 'OK', content: { 'application/json': { schema: __Feature__Dto } } },
+        404: { description: 'Not found', content: { 'application/json': { schema: ErrorBody } } },
+      },
+    }),
+    get__Feature__Controller(container) as any,
+  );
+
+  r.openapi(
+    createRoute({
+      method: 'get',
+      path: '/',
+      tags: ['__features__'],
+      summary: 'List __features__ with cursor pagination',
+      request: { query: List__Features__Query },
+      responses: {
+        200: { description: 'OK', content: { 'application/json': { schema: List__Features__Response } } },
+        422: { description: 'Validation error', content: { 'application/json': { schema: ErrorBody } } },
+      },
+    }),
+    list__Features__Controller(container) as any,
+  );
+
+  return r;
+};

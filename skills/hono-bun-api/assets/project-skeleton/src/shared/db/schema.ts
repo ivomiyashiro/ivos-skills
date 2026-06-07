@@ -1,8 +1,8 @@
 import { pgTable, uuid, text, timestamp, numeric } from 'drizzle-orm/pg-core';
 
 /**
- * Schema de Drizzle compartido entre modulos.
- * Cada modulo puede tener sus tablas; este archivo las re-exporta para que
+ * Schema de Drizzle compartido entre features.
+ * Cada feature puede tener sus tablas; este archivo las re-exporta para que
  * Drizzle Kit las descubra al generar migraciones.
  */
 

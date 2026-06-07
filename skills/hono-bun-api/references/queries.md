@@ -1,16 +1,16 @@
 # Queries
 
 Las queries leen datos y devuelven DTOs optimizados para el consumidor. No cargan
-agregados ni usan repositorios de write-side salvo que haya una razon excepcional.
+modelos de write-side salvo que haya una razón excepcional.
 
-## Ubicacion
+## Ubicación
 
 ```txt
-modules/projects/application/
-  queries/get-project-dashboard.query.ts
-  handlers/get-project-dashboard.handler.ts
+features/projects/use-cases/queries/
+  get-project-dashboard.query.ts
+  list-projects.query.ts
 
-modules/projects/infrastructure/
+features/projects/repository/
   project-read-model.ts
 ```
 
@@ -28,7 +28,7 @@ export type GetProjectDashboardDeps = {
   permissions: PermissionService;
 };
 
-export const getProjectDashboardHandler = async (
+export const getProjectDashboardQuery = async (
   deps: GetProjectDashboardDeps,
   query: GetProjectDashboardQuery,
 ): Promise<Result<ProjectDashboardDto, AppError>> => {
@@ -78,7 +78,7 @@ export class ProjectReadModel {
 
 ## Reglas
 
-- Proyectar solo campos del DTO publico.
+- Proyectar solo campos del DTO público.
 - Usar joins para evitar N+1.
 - Usar cursor pagination en listados grandes.
 - Filtrar siempre por tenant/organization cuando aplique.
@@ -110,8 +110,8 @@ const rows = await db
 
 ## Anti-Patrones
 
-- Query handler llamando `projectRepo.findById()` para responder un GET.
-- Cargar agregado completo y mapearlo en memoria.
-- Reutilizar DTO de DB como contrato publico.
+- Query llamando `projectRepo.findById()` para responder un dashboard/listado.
+- Cargar entidad completa y mapearla en memoria.
+- Reutilizar DTO de DB como contrato público.
 - Offset pagination en tablas grandes.
 - Query sin filtro de tenant en app multi-tenant.

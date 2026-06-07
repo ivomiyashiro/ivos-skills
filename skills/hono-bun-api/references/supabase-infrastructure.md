@@ -37,5 +37,5 @@ privilegiada:
 
 ## AuthZ
 
-RLS no reemplaza reglas de negocio del backend. Application/domain decide permisos,
-limites de plan y ownership. RLS ayuda como defensa en profundidad.
+RLS no reemplaza reglas de negocio del backend. Use cases/utils deciden permisos,
+límites de plan y ownership. RLS ayuda como defensa en profundidad.

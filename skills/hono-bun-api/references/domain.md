@@ -1,17 +1,18 @@
-# Domain Layer
+# Utils Y Reglas De Negocio
 
-Domain contiene reglas que definen el negocio. Debe ser portable y testeable sin
-Hono, Drizzle, Supabase ni Bun.
+En esta skill no hay carpeta `domain/` por default. Las reglas puras de negocio viven
+en `features/<feature>/utils/` y se mantienen portables y testeables sin Hono,
+Drizzle, Supabase ni Bun.
 
 ## Contenido
 
-- entities
-- value objects
+- entidades/modelos livianos
+- value objects cuando agregan reglas reales
 - policies
-- domain services puros
-- domain errors
-- repository interfaces
-- domain events
+- guards/assertions puros
+- errores de negocio locales
+- eventos locales
+- mappers sin IO
 
 ## Entity
 
@@ -31,6 +32,7 @@ export class Organization {
 ## Value Objects
 
 Usar value objects para invariantes reutilizables:
+
 - email
 - slug
 - money
@@ -41,7 +43,7 @@ No crear value objects ceremoniales si solo envuelven un string sin regla.
 
 ## Policies
 
-Policies son utiles cuando una decision depende de varios datos del dominio:
+Policies son útiles cuando una decisión depende de varios datos:
 
 ```ts
 export const canCreateProject = (org: Organization, actor: Member, plan: Plan) => {
@@ -53,8 +55,8 @@ export const canCreateProject = (org: Organization, actor: Member, plan: Plan) =
 
 ## Anti-Patrones
 
-- domain importando Drizzle/Hono/Supabase
-- entities con metodos async que hacen I/O
+- utils importando Drizzle/Hono/Supabase
+- entidades con métodos async que hacen I/O
 - reglas duplicadas en controllers
-- anemic domain para invariantes importantes
+- lógica de negocio escondida en repositories
 - DDD pesado para CRUD sin reglas reales

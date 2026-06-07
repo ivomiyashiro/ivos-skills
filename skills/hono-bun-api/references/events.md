@@ -1,6 +1,6 @@
 # Domain Events Y Outbox
 
-Usar eventos para comunicar hechos entre modulos y para disparar side effects sin
+Usar eventos para comunicar hechos entre features y para disparar side effects sin
 acoplar commands a proveedores externos.
 
 ## Domain Event
@@ -21,7 +21,7 @@ Eventos nombran hechos pasados:
 
 No nombrar eventos como comandos (`SendEmail`, `SyncStripe`).
 
-## En Domain
+## En Utils/Entidades
 
 Entities pueden acumular eventos:
 
@@ -86,5 +86,5 @@ Ver `references/outbox.md` para el esquema recomendado.
 - side effects externos dentro del request critico sin retry
 - publicar evento antes de persistir
 - eventos con payloads enormes
-- ciclos entre modulos por eventos
+- ciclos entre features por eventos
 - depender del orden de handlers de eventos

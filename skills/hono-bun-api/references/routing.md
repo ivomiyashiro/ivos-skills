@@ -1,12 +1,13 @@
 # Routing
 
-Cada modulo exporta `build<Modules>Routes(container)`. Ese archivo arma la sub-app
-Hono/OpenAPI y conecta cada ruta con su controller.
+Cada feature exporta `build<Features>Routes(container)` desde su `index.ts`. El
+archivo `routes/<features>.routes.ts` arma la sub-app Hono/OpenAPI y conecta cada
+ruta con su controller.
 
 ## Ejemplo
 
 ```ts
-// modules/projects/projects.routes.ts
+// features/projects/routes/projects.routes.ts
 export const buildProjectsRoutes = (container: AppContainer) => {
   const r = createApiRouter();
 
@@ -32,6 +33,8 @@ export const buildProjectsRoutes = (container: AppContainer) => {
 ## App Root
 
 ```ts
+import { buildProjectsRoutes } from '@features/projects';
+
 app.route('/projects', buildProjectsRoutes(container));
 app.route('/organizations', buildOrganizationsRoutes(container));
 ```
@@ -43,19 +46,19 @@ endpoints.
 
 - Routes definen OpenAPI y HTTP method/path.
 - Controllers adaptan request/response.
-- Application handlers no importan Hono.
+- Use cases no importan Hono.
 - No poner SQL ni reglas de negocio en routes.
 - Usar `requireAuth`/middleware si aplica a grupos enteros de rutas.
 
 ## Sub-recursos
 
-Si un sub-recurso comparte el mismo bounded context, mantenerlo en el modulo:
+Si un sub-recurso comparte el mismo bounded context, mantenerlo en la feature:
 
 ```txt
-modules/projects/
-  projects.routes.ts
-  tasks/
-    tasks.routes.ts
+features/projects/
+  routes/
+    projects.routes.ts
+    project-tasks.routes.ts
 ```
 
-Si tiene reglas, ownership y lifecycle propios, promoverlo a modulo.
+Si tiene reglas, ownership y lifecycle propios, promoverlo a feature.

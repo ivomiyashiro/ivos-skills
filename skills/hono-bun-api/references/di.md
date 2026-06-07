@@ -12,7 +12,6 @@ export function createContainer() {
   const eventBus = createEventBus();
   const logger = baseLogger;
 
-  const exampleRepo = new DrizzleExampleRepository(db);
   const exampleReadModel = new ExampleReadModel(db);
 
   return {
@@ -20,8 +19,8 @@ export function createContainer() {
     tx,
     eventBus,
     logger,
-    exampleRepo,
     exampleReadModel,
+    createExampleRepository: (db: Db) => new DrizzleExampleRepository(db),
   };
 }
 
@@ -33,18 +32,16 @@ export type AppContainer = ReturnType<typeof createContainer>;
 ```ts
 const container = createContainer();
 const app = buildApp(container);
-```
 
-`buildApp(container)` registra middlewares y monta modulos. Los controllers reciben
-el container via closure:
-
-```ts
 app.route('/examples', buildExamplesRoutes(container));
 ```
 
+`buildApp(container)` registra middlewares y monta features. Los controllers reciben
+el container vía closure.
+
 ## Controllers
 
-Pasar solo dependencias necesarias al handler:
+Pasar solo dependencias necesarias al use case:
 
 ```ts
 export const createExampleController =
@@ -53,15 +50,15 @@ export const createExampleController =
     const body = c.req.valid('json');
     const auth = c.get('auth');
 
-    const result = await createExampleHandler(
+    const result = await createExampleCommand(
       {
-        repo: container.exampleRepo,
+        createRepo: container.createExampleRepository,
         tx: container.tx,
         eventBus: container.eventBus,
         clock: container.clock,
         logger: c.get('logger'),
       },
-      { ...body, actorId: auth!.userId },
+      { ...body, actorId: auth?.userId ?? null },
     );
 
     return toHttpResponse(c, result, 201);
@@ -71,22 +68,24 @@ export const createExampleController =
 ## Request Scope
 
 Middlewares ponen en `c.var` solo valores del request:
+
 - `requestId`
 - child `logger`
 - `auth`
+- `db` si un endpoint necesita read context directo
 
 No crear DB pool ni repos por request salvo que el command necesite un handle
-transaccional especifico.
+transaccional específico.
 
 ## Testing
 
-Para unit tests de application handlers, construir deps fake a mano. Para integration
-tests de Hono, crear un container de test con DB de test y adapters fake.
+Para unit tests de use cases, construir deps fake a mano. Para integration tests de
+Hono, crear un container de test con DB de test y adapters fake.
 
 ## Anti-Patrones
 
 - module-level singleton `export const db = buildDb(...)`
-- pasar `container` completo a cada handler
-- importar Hono context en application/domain
-- registrar dependencias con strings magicos
-- construir repositorios dentro de entities/domain objects
+- pasar `container` completo a cada use case
+- importar Hono context en use cases/utils
+- registrar dependencias con strings mágicos
+- construir repositories dentro de entidades/utils

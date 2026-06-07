@@ -7,13 +7,13 @@ import { authMiddleware, type VerifyFn } from '@shared/middlewares/auth';
 import { createSupabaseVerify } from '@shared/auth/supabase';
 import { metricsHandler } from '@shared/observability/metrics';
 import { mountDocs } from '@shared/openapi/docs';
-import { buildExamplesRoutes } from '@modules/examples/examples.routes';
+import { buildExamplesRoutes } from '@features/examples';
 import type { AppContainer } from './container';
 
 /**
  * Construye la instancia de Hono con middlewares globales, probes, metrics,
- * docs y modulos montados. Hono queda como adapter HTTP: la logica vive en
- * application/domain dentro de cada modulo.
+ * docs y features montadas. Hono queda como adapter HTTP: la logica vive en
+ * use-cases/repository/utils dentro de cada feature.
  */
 export const buildApp = (container: AppContainer) => {
   const app = createApiRouter();

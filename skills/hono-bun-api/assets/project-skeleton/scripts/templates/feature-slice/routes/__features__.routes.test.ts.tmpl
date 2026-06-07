@@ -1,0 +1,15 @@
+import { describe, expect, test } from 'bun:test';
+import { buildApp } from '@/app';
+import { createTestContainer } from '@test/helpers';
+
+describe('__features__ routes', () => {
+  test('GET /__features__ returns a list', async () => {
+    const container = await createTestContainer();
+    const app = buildApp(container);
+
+    const res = await app.request('/__features__');
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ items: [] });
+  });
+});

@@ -30,7 +30,7 @@ export type AppEnv = {
 
 /**
  * ReadContext — disponible si una query handler elige recibir db raw.
- * En modulos grandes, preferir un read model en infrastructure.
+ * En features grandes, preferir un read model en repository.
  */
 export type ReadContext = {
   db: Db;

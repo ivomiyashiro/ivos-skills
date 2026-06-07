@@ -1,6 +1,0 @@
-import type { DomainEvent } from '@shared/events/event-bus';
-
-export type __Module__Created = DomainEvent<'__Module__Created', { id: string; name: string }>;
-export type __Module__Updated = DomainEvent<'__Module__Updated', { id: string }>;
-
-export type __Module__Event = __Module__Created | __Module__Updated;

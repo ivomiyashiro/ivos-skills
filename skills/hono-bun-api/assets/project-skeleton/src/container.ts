@@ -4,8 +4,8 @@ import { buildDb } from '@shared/db/client';
 import { createTransactionManager } from '@shared/db/transaction';
 import { createEventBus } from '@shared/events/event-bus';
 import { baseLogger } from '@shared/observability/logger';
-import { DrizzleExampleRepository } from '@modules/examples/infrastructure/drizzle-example.repository';
-import { ExampleReadModel } from '@modules/examples/infrastructure/example-read-model';
+import { DrizzleExampleRepository } from '@features/examples/repository/drizzle-example.repository';
+import { ExampleReadModel } from '@features/examples/repository/example-read-model';
 
 export type Clock = { now: () => Date };
 export const systemClock: Clock = { now: () => new Date() };

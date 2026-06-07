@@ -35,7 +35,7 @@ export const createApiRouter = () =>
   });
 ```
 
-**Importante:** cada modulo `*.routes.ts` debe usar `createApiRouter()` para sus
+**Importante:** cada feature `routes/*.routes.ts` debe usar `createApiRouter()` para sus
 sub-routers. El `defaultHook` no se hereda al hacer `app.route('/prefix', sub)`;
 cada sub-app necesita su propia config.
 
@@ -126,7 +126,7 @@ buildApp(deps) {
 }
 ```
 
-Llamar `mountDocs` DESPUÉS de registrar todos los modulos para que la spec esté
+Llamar `mountDocs` DESPUÉS de registrar todas las features para que la spec esté
 completa.
 
 ## Ordering matter
@@ -141,7 +141,7 @@ app.use('*', loggerMiddleware());
 // 2. Probes (que NO deben aparecer en docs si no queremos)
 app.get('/healthz', ...);  // no usa .openapi(), no aparece en spec
 
-// 3. Modulos con .openapi()
+// 3. Features con .openapi()
 app.route('/examples', buildExampleRoutes(deps));
 
 // 4. Docs (DESPUÉS de todo lo de arriba)

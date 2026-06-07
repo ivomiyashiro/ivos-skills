@@ -1,0 +1,21 @@
+import { success, type Result } from '@shared/result';
+import type { AppError } from '@shared/errors/app-error';
+import type { __Feature__ReadModel } from '../../repository/__feature__-read-model';
+import type { List__Features__Response } from '../../__features__.schemas';
+import type { List__Features__Query } from '../../__features__.schemas';
+
+export type List__Features__QueryRequest = List__Features__Query & {
+  actorId: string | null;
+};
+
+export type List__Features__Deps = {
+  readModel: __Feature__ReadModel;
+};
+
+export const list__Features__Query = async (
+  deps: List__Features__Deps,
+  query: List__Features__QueryRequest,
+): Promise<Result<List__Features__Response, AppError>> => {
+  void query.actorId;
+  return success(await deps.readModel.list(query));
+};

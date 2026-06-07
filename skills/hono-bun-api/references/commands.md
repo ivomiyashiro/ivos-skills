@@ -1,15 +1,15 @@
 # Commands
 
 Los commands modifican estado. Cada command representa un caso de uso nombrado con
-verbo e intencion de negocio: `CreateProjectCommand`, `InviteMemberCommand`,
-`CancelSubscriptionCommand`.
+verbo e intención de negocio: `createProjectCommand`, `inviteMemberCommand`,
+`cancelSubscriptionCommand`.
 
-## Ubicacion
+## Ubicación
 
 ```txt
-modules/projects/application/
-  commands/create-project.command.ts
-  handlers/create-project.handler.ts
+features/projects/use-cases/commands/
+  create-project.command.ts
+  update-project.command.ts
 ```
 
 ## Forma Recomendada
@@ -22,26 +22,19 @@ export type CreateProjectCommand = {
 };
 
 export type CreateProjectDeps = {
-  projectRepo: ProjectRepository;
-  organizationRepo: OrganizationRepository;
+  createProjectRepository: (db: Db) => ProjectRepository;
   tx: TransactionManager;
   eventBus: EventBus;
   clock: Clock;
   logger: Logger;
 };
 
-export const createProjectHandler = async (
+export const createProjectCommand = async (
   deps: CreateProjectDeps,
   command: CreateProjectCommand,
 ): Promise<Result<{ id: string }, AppError>> => {
-  return deps.tx.run(async () => {
-    const org = await deps.organizationRepo.findById(command.organizationId);
-    if (!org) return failure(notFound('Organization', command.organizationId));
-
-    if (!org.canCreateProject(command.ownerId)) {
-      return failure(forbidden('not allowed to create project'));
-    }
-
+  return deps.tx.run(async (db) => {
+    const repo = deps.createProjectRepository(db);
     const project = Project.create({
       organizationId: command.organizationId,
       name: command.name,
@@ -49,8 +42,8 @@ export const createProjectHandler = async (
       now: deps.clock.now(),
     });
 
-    await deps.projectRepo.save(project);
-    await deps.eventBus.publish(project.pullEvents());
+    await repo.save(project);
+    deps.eventBus.publishMany(project.pullEvents());
 
     deps.logger.info({ projectId: project.id }, 'project created');
     return success({ id: project.id });
@@ -60,52 +53,57 @@ export const createProjectHandler = async (
 
 ## Responsabilidades
 
-Un command handler puede:
-- cargar agregados necesarios para la decision
+Un command puede:
+
+- cargar estado necesario para la decisión
 - verificar authorization fina
-- aplicar policies de dominio
+- aplicar policies de `utils/`
 - abrir transacciones
-- llamar repositorios/adapters
-- registrar outbox/domain events
-- devolver output minimo
+- llamar repositories/adapters
+- registrar outbox/eventos
+- devolver output mínimo
 
 No debe:
+
 - leer `Context` de Hono
 - parsear JSON
 - devolver status HTTP
 - construir SQL de dashboards/listados
-- llamar otro command handler de otro modulo como shortcut
+- llamar otro command de otra feature como shortcut
 
-## Validacion
+## Validación
 
-Zod valida shape en el borde HTTP. El command/domain valida reglas de negocio:
-- limites del plan
+Zod valida shape en el borde HTTP. El command/utils valida reglas de negocio:
+
+- límites del plan
 - permisos del actor
-- estado actual del agregado
-- unicidad semantica
+- estado actual de la entidad/agregado
+- unicidad semántica
 - transiciones permitidas
 
 ## Transacciones
 
 Usar `TransactionManager` cuando:
-- se escriben multiples tablas
-- se guarda entidad + outbox
-- se mutan multiples agregados
-- hay que garantizar rollback atomico
 
-Para writes triviales de una sola tabla, el repo puede usar `db` directo.
+- se escriben múltiples tablas
+- se guarda entidad + outbox
+- se mutan múltiples agregados
+- hay que garantizar rollback atómico
+
+Para writes triviales de una sola tabla, el repository puede usar `db` directo.
 
 ## Eventos
 
-Para side effects no criticos:
-- dominio acumula eventos
+Para side effects no críticos:
+
+- utils/entity acumula eventos si aplica
 - command persiste cambios
 - command guarda outbox o publica post-commit
-- worker procesa email/webhook/notificacion
+- worker procesa email/webhook/notificación
 
-No publicar eventos externos antes de confirmar la transaccion.
+No publicar eventos externos antes de confirmar la transacción.
 
 ## Testing
 
-Unit testear command handlers con repositorios fake. Integration testear repositorios
-Drizzle contra DB real o pglite/testcontainers.
+Unit testear commands con repositorios fake. Integration testear repositories Drizzle
+contra DB real o pglite/testcontainers.

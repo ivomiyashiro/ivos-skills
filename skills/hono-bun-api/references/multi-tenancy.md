@@ -36,4 +36,4 @@ Nunca buscar solo por `id` si el endpoint depende de una organizacion.
 ## AuthZ
 
 AuthN responde "quien sos". AuthZ responde "que podes hacer en este tenant".
-Validar membresia/rol/plan en application/domain, no solo con RLS.
+Validar membresía/rol/plan en use cases/utils, no solo con RLS.
