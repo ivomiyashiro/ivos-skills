@@ -2,29 +2,30 @@ import type { Context } from 'hono';
 import type { AppEnv } from '@shared/hono/types';
 import { toHttpResponse } from '@shared/errors/to-http';
 import type { AppContainer } from '@/container';
-import { create__Feature__Command } from '../use-cases/commands/create-__feature__.command';
-import { update__Feature__Command } from '../use-cases/commands/update-__feature__.command';
-import { get__Feature__ByIdQuery } from '../use-cases/queries/get-__feature__-by-id.query';
-import { list__Features__Query } from '../use-cases/queries/list-__features__.query';
+import { create__Feature__UseCases } from '../use-cases/__features__.use-cases';
 import type { Create__Feature__Input, List__Features__Query, Update__Feature__Input } from '../__features__.schemas';
 
 type ControllerContext = Context<AppEnv, string, any>;
 type IdParam = { id: string };
 
+const buildUseCases = (container: AppContainer, c: ControllerContext) =>
+  create__Feature__UseCases({
+    createRepo: container.create__Feature__Repository,
+    readModel: container.__featureCamel__ReadModel,
+    tx: container.tx,
+    eventBus: container.eventBus,
+    logger: c.get('logger'),
+    clock: container.clock,
+  });
+
 export const create__Feature__Controller =
   (container: AppContainer) =>
   async (c: ControllerContext) => {
     const body = c.req.valid('json') as Create__Feature__Input;
-    const result = await create__Feature__Command(
-      {
-        createRepo: container.create__Feature__Repository,
-        tx: container.tx,
-        eventBus: container.eventBus,
-        logger: c.get('logger'),
-        clock: container.clock,
-      },
-      { ...body, actorId: c.get('auth')?.userId ?? null },
-    );
+    const result = await buildUseCases(container, c).create({
+      ...body,
+      actorId: c.get('auth')?.userId ?? null,
+    });
 
     return toHttpResponse(c, result, 201);
   };
@@ -34,16 +35,11 @@ export const update__Feature__Controller =
   async (c: ControllerContext) => {
     const { id } = c.req.valid('param') as IdParam;
     const body = c.req.valid('json') as Update__Feature__Input;
-    const result = await update__Feature__Command(
-      {
-        createRepo: container.create__Feature__Repository,
-        tx: container.tx,
-        eventBus: container.eventBus,
-        logger: c.get('logger'),
-        clock: container.clock,
-      },
-      { id, ...body, actorId: c.get('auth')?.userId ?? null },
-    );
+    const result = await buildUseCases(container, c).update({
+      id,
+      ...body,
+      actorId: c.get('auth')?.userId ?? null,
+    });
 
     return toHttpResponse(c, result, 200);
   };
@@ -52,10 +48,10 @@ export const get__Feature__Controller =
   (container: AppContainer) =>
   async (c: ControllerContext) => {
     const { id } = c.req.valid('param') as IdParam;
-    const result = await get__Feature__ByIdQuery(
-      { readModel: container.__featureCamel__ReadModel },
-      { id, actorId: c.get('auth')?.userId ?? null },
-    );
+    const result = await buildUseCases(container, c).getById({
+      id,
+      actorId: c.get('auth')?.userId ?? null,
+    });
 
     return toHttpResponse(c, result, 200);
   };
@@ -64,10 +60,10 @@ export const list__Features__Controller =
   (container: AppContainer) =>
   async (c: ControllerContext) => {
     const query = c.req.valid('query') as List__Features__Query;
-    const result = await list__Features__Query(
-      { readModel: container.__featureCamel__ReadModel },
-      { ...query, actorId: c.get('auth')?.userId ?? null },
-    );
+    const result = await buildUseCases(container, c).list({
+      ...query,
+      actorId: c.get('auth')?.userId ?? null,
+    });
 
     return toHttpResponse(c, result, 200);
   };

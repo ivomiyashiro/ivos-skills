@@ -252,7 +252,19 @@ utils, use cases, schemas, constants, types e index público.
 
 ## 9. Dependency Injection
 
-No usar DI container pesado al principio. Usar composition root manual:
+No usar DI container pesado al principio. En esta skill, "DI" significa pasar deps
+desde afuera, no usar decorators ni `container.resolve()`.
+
+Regla práctica:
+
+```txt
+Función pura -> no DI.
+Use case con IO -> deps explícitas.
+Deps repetidas en varios controllers -> factory por feature.
+DI container library -> solo si hay lifetimes/grafo complejo real.
+```
+
+Usar composition root manual para crear recursos de app:
 
 ```ts
 export function createContainer() {
@@ -272,8 +284,19 @@ export function createContainer() {
 }
 ```
 
-Controllers reciben el container por closure o `c.var`. Use cases reciben solo las
-deps que usan, no el container entero. Ver `references/di.md`.
+Los use cases reciben solo las deps que usan, no el container entero. Si varios
+controllers repiten las mismas deps, crear una factory local:
+
+```ts
+export const createExampleUseCases = (deps: ExampleUseCasesDeps) => ({
+  create: (command: CreateExampleCommand) => createExampleCommand(deps, command),
+  update: (command: UpdateExampleCommand) => updateExampleCommand(deps, command),
+  list: (query: ListExamplesQuery) => listExamplesQuery({ readModel: deps.readModel }, query),
+});
+```
+
+Controllers reciben el container por closure, agregan deps request-scoped como
+`logger/auth`, crean la factory y llaman métodos del caso de uso. Ver `references/di.md`.
 
 ---
 
