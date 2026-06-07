@@ -9,6 +9,7 @@
 type Step = { name: string; cmd: string[] };
 
 const steps: Step[] = [
+  { name: 'boundaries', cmd: ['bun', 'run', 'check:boundaries'] },
   { name: 'typecheck', cmd: ['bun', 'run', 'typecheck'] },
   { name: 'test', cmd: ['bun', 'test'] },
   { name: 'build', cmd: ['bun', 'run', 'build'] },

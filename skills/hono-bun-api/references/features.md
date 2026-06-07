@@ -52,6 +52,9 @@ reaccionar a cambios, usar eventos. Si hace falta reutilizar una regla compleja,
 feature dueña debe exponer una API pública desde su `index.ts` o la regla debe subir
 a `shared` solo si es realmente transversal.
 
+El skeleton incluye `bun run check:boundaries` para detectar imports internos entre
+features y cualquier import desde `shared` hacia `features`.
+
 ## Types, Constants, Utils
 
 - `projects.schemas.ts`: schemas HTTP y tipos inferidos desde Zod.

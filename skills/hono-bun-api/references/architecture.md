@@ -72,6 +72,7 @@ Reglas:
 - `repository/` implementa detalles técnicos de persistencia.
 - Controllers son adapters HTTP y pueden importar Hono/Zod/shared HTTP helpers.
 - Una feature no importa internals de otra feature.
+- Correr `bun run check:boundaries` para hacer estas reglas verificables.
 
 ## Coordinación Entre Features
 

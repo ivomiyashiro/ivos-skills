@@ -110,4 +110,7 @@ bun test
 bun run check
 ```
 
-Corre `typecheck`, `test` y `build`.
+Corre `check:boundaries`, `typecheck`, `test` y `build`.
+
+`check:boundaries` evita imports internos entre features y cualquier import desde
+`shared` hacia `features`.

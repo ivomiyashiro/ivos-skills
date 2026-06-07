@@ -47,6 +47,8 @@ lecturas se optimizan sin cargar modelos de escritura cuando no aportan valor.
 10. **Zod en el borde HTTP.** Zod valida shape de entrada; los use cases/utils validan reglas de negocio.
 11. **Transacciones explícitas para writes críticas.** Si una operación toca múltiples tablas o publica side effects durables, envolverla en `TransactionManager`.
 12. **Outbox para side effects durables.** Emails, webhooks, notificaciones y sync externos no deben romper el request principal.
+13. **Performance es parte del endpoint.** Cada query debe tener DTO proyectado, límite, paginación estable e índice compatible.
+14. **Boundaries verificables.** Usar `bun run check:boundaries` para evitar imports internos entre features.
 
 ---
 
@@ -223,7 +225,39 @@ Si necesito leer datos eficiente para UI/API -> query + read model/Drizzle.
 
 ---
 
-## 8. Bootstrap De Proyecto Nuevo
+## 8. Performance Y Boundaries
+
+Antes de cerrar un endpoint:
+
+- proyectar DTOs explícitos; no usar `select *`
+- evitar N+1 con joins, batch queries o read models
+- usar cursor pagination en listados grandes
+- definir `limit` máximo y response payload chico
+- filtrar tenant/organization en SQL, no en memoria
+- diseñar el índice junto con la query
+- correr boundary checks para imports entre features
+
+Para cada listado, documentar mentalmente:
+
+```txt
+GET /projects?status=active
+where organization_id = ?
+  and status = ?
+order by created_at desc, id desc
+
+index:
+(organization_id, status, created_at desc, id desc)
+```
+
+Si una feature necesita otra, importar solo su API pública desde
+`@features/<feature>`. No importar `@features/<feature>/repository`,
+`@features/<feature>/utils` ni subpaths internos.
+
+Detalles: `references/performance.md` y `references/pagination-and-indexes.md`.
+
+---
+
+## 9. Bootstrap De Proyecto Nuevo
 
 ```bash
 cp -r <skill-dir>/assets/project-skeleton/ ./mi-api
@@ -250,7 +284,7 @@ utils, use cases, schemas, constants, types e index público.
 
 ---
 
-## 9. Dependency Injection
+## 10. Dependency Injection
 
 No usar DI container pesado al principio. En esta skill, "DI" significa pasar deps
 desde afuera, no usar decorators ni `container.resolve()`.
@@ -300,7 +334,7 @@ Controllers reciben el container por closure, agregan deps request-scoped como
 
 ---
 
-## 10. Errores
+## 11. Errores
 
 Default del skeleton: `Result<T, AppError>` en use cases para errores esperados.
 Utils/policies pueden exponer errores tipados o decisiones; el use case los mapea a
@@ -314,7 +348,7 @@ consistente en toda la feature y mantener mapper HTTP central. No mezclar estilo
 
 ---
 
-## 11. Testing
+## 12. Testing
 
 Prioridad:
 
@@ -327,7 +361,7 @@ No testear solo endpoints. Las reglas valiosas viven en use cases y utils.
 
 ---
 
-## 12. Checklist Pre-PR
+## 13. Checklist Pre-PR
 
 - [ ] Input HTTP validado con Zod.
 - [ ] Controllers sin reglas de negocio ni SQL.
@@ -336,6 +370,9 @@ No testear solo endpoints. Las reglas valiosas viven en use cases y utils.
 - [ ] Constants/types/schemas viven en la feature salvo que sean globales reales.
 - [ ] Commands usan transacción cuando hay múltiples writes o outbox.
 - [ ] Queries usan read models/Drizzle y devuelven DTO específico.
+- [ ] Queries/listados tienen DTO proyectado, límite máximo e índice compatible.
+- [ ] No hay N+1 obvio ni filtrado tenant/organization en memoria.
+- [ ] `bun run check:boundaries` pasa.
 - [ ] No hay repositorios para dashboards/search/stats/reports por costumbre.
 - [ ] AuthN en middleware; AuthZ en use cases/utils.
 - [ ] Multi-tenant queries filtran por `organizationId`/`tenantId` cuando aplique.
@@ -347,7 +384,7 @@ No testear solo endpoints. Las reglas valiosas viven en use cases y utils.
 
 ---
 
-## 13. Tabla De Referencia Rápida
+## 14. Tabla De Referencia Rápida
 
 | Situación | Ir a |
 |---|---|
@@ -356,6 +393,7 @@ No testear solo endpoints. Las reglas valiosas viven en use cases y utils.
 | Crear una feature paso a paso | `references/feature-walkthrough.md` |
 | Commands | `references/commands.md` |
 | Queries/read models | `references/queries.md` |
+| Performance por endpoint | `references/performance.md` |
 | Repositories | `references/repositories.md` |
 | Transacciones | `references/transactions.md` |
 | Outbox | `references/outbox.md` |
