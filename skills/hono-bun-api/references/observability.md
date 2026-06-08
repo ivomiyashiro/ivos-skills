@@ -105,6 +105,31 @@ El middleware `logger.ts` registra ambas en cada request.
 `/metrics` lo sirve `metricsHandler` montado en `app.ts`. Prometheus scrapea cada 15s
 default.
 
+## Mínimo Por Operación Crítica
+
+Endpoints críticos:
+
+- duración
+- status
+- route pattern
+- requestId
+- actor/tenant en logs cuando aplique, no como labels Prometheus
+
+Jobs/outbox:
+
+- eventos pending/processing/failed
+- attempts
+- duración por handler
+- retries
+- dead-letter count
+
+Proveedores externos:
+
+- duración
+- timeout count
+- retry count
+- status/código externo con cardinalidad acotada
+
 ## Custom métricas
 
 Por feature:

@@ -93,6 +93,9 @@ app.route('/projects', buildProjectsRoutes(container));
 6. Queries usan read models/Drizzle y devuelven DTOs.
 7. Zod valida input HTTP; utils/use-cases validan negocio.
 8. Supabase es infraestructura, no arquitectura.
+9. Endpoints públicos/caros usan rate limit o backpressure.
+10. Llamadas externas usan timeout; retries solo si son idempotentes.
+11. Cache solo con invalidación definida.
 
 ## Testing
 
@@ -114,3 +117,9 @@ Corre `check:boundaries`, `typecheck`, `test` y `build`.
 
 `check:boundaries` evita imports internos entre features y cualquier import desde
 `shared` hacia `features`.
+
+Helpers incluidos:
+
+- `src/shared/utils/timeout.ts`
+- `src/shared/utils/retry.ts`
+- `src/shared/middlewares/rate-limit.ts` (in-memory, opt-in)

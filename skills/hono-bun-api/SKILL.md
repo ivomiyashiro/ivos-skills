@@ -49,6 +49,11 @@ lecturas se optimizan sin cargar modelos de escritura cuando no aportan valor.
 12. **Outbox para side effects durables.** Emails, webhooks, notificaciones y sync externos no deben romper el request principal.
 13. **Performance es parte del endpoint.** Cada query debe tener DTO proyectado, límite, paginación estable e índice compatible.
 14. **Boundaries verificables.** Usar `bun run check:boundaries` para evitar imports internos entre features.
+15. **Commands retryables deben ser idempotentes.** Pagos, webhooks, invitaciones y creates sensibles necesitan `Idempotency-Key` o clave natural.
+16. **Endpoints caros tienen límites.** Usar rate limit, límites de concurrencia o colas cuando el costo no sea trivial.
+17. **Ninguna llamada externa sin timeout.** Retries solo si la operación es idempotente o está protegida por idempotencia.
+18. **Cache con invalidación definida.** No agregar Redis por reflejo; primero medir y decidir cómo se invalida.
+19. **Observabilidad mínima por operación.** Logs estructurados, métricas útiles, requestId y sin PII/tokens completos.
 
 ---
 
@@ -257,7 +262,45 @@ Detalles: `references/performance.md` y `references/pagination-and-indexes.md`.
 
 ---
 
-## 9. Bootstrap De Proyecto Nuevo
+## 9. Operación Y Confiabilidad
+
+**Idempotencia**
+
+- Exigir `Idempotency-Key` en commands sensibles: pagos, webhooks, invitaciones, creates importantes.
+- Guardar key + actor/tenant + hash del payload + resultado o referencia creada.
+- Si llega la misma key con payload distinto, devolver `Conflict`.
+
+**Rate limit y backpressure**
+
+- Endpoints públicos, login, webhooks y queries caras deben tener rate limit.
+- Workers/jobs deben tener concurrencia máxima y backoff.
+- En multi-instancia, usar Redis/Postgres/adaptador compartido; el limiter in-memory del skeleton es solo para una instancia o desarrollo.
+
+**Timeouts y retries**
+
+- Toda llamada externa debe tener timeout.
+- Retry con backoff solo cuando la operación sea idempotente.
+- Propagar `AbortSignal` cuando el cliente/librería lo soporte.
+
+**Cache**
+
+- Cachear solo reads caras y estables.
+- Definir invalidación antes de implementar.
+- Preferir per-request memoization o HTTP cache antes de Redis si alcanza.
+
+**Observabilidad**
+
+- Loguear duración, status, requestId, actor/tenant cuando aplique.
+- Métricas de endpoints, jobs, outbox, retries y rate limits.
+- No usar labels de alta cardinalidad como `userId`.
+
+Detalles: `references/idempotency.md`, `references/rate-limits-and-backpressure.md`,
+`references/timeouts-and-retries.md`, `references/caching.md`,
+`references/observability.md` y `references/outbox.md`.
+
+---
+
+## 10. Bootstrap De Proyecto Nuevo
 
 ```bash
 cp -r <skill-dir>/assets/project-skeleton/ ./mi-api
@@ -284,7 +327,7 @@ utils, use cases, schemas, constants, types e index público.
 
 ---
 
-## 10. Dependency Injection
+## 11. Dependency Injection
 
 No usar DI container pesado al principio. En esta skill, "DI" significa pasar deps
 desde afuera, no usar decorators ni `container.resolve()`.
@@ -334,7 +377,7 @@ Controllers reciben el container por closure, agregan deps request-scoped como
 
 ---
 
-## 11. Errores
+## 12. Errores
 
 Default del skeleton: `Result<T, AppError>` en use cases para errores esperados.
 Utils/policies pueden exponer errores tipados o decisiones; el use case los mapea a
@@ -348,7 +391,7 @@ consistente en toda la feature y mantener mapper HTTP central. No mezclar estilo
 
 ---
 
-## 12. Testing
+## 13. Testing
 
 Prioridad:
 
@@ -361,7 +404,7 @@ No testear solo endpoints. Las reglas valiosas viven en use cases y utils.
 
 ---
 
-## 13. Checklist Pre-PR
+## 14. Checklist Pre-PR
 
 - [ ] Input HTTP validado con Zod.
 - [ ] Controllers sin reglas de negocio ni SQL.
@@ -369,6 +412,7 @@ No testear solo endpoints. Las reglas valiosas viven en use cases y utils.
 - [ ] Utils no importan Hono, Drizzle, Supabase ni Bun.
 - [ ] Constants/types/schemas viven en la feature salvo que sean globales reales.
 - [ ] Commands usan transacción cuando hay múltiples writes o outbox.
+- [ ] Commands sensibles tienen idempotencia.
 - [ ] Queries usan read models/Drizzle y devuelven DTO específico.
 - [ ] Queries/listados tienen DTO proyectado, límite máximo e índice compatible.
 - [ ] No hay N+1 obvio ni filtrado tenant/organization en memoria.
@@ -378,13 +422,17 @@ No testear solo endpoints. Las reglas valiosas viven en use cases y utils.
 - [ ] Multi-tenant queries filtran por `organizationId`/`tenantId` cuando aplique.
 - [ ] Listados grandes usan cursor pagination.
 - [ ] Side effects durables usan outbox/worker.
+- [ ] Llamadas externas tienen timeout; retries solo si son idempotentes.
+- [ ] Endpoints públicos/caros tienen rate limit o backpressure.
+- [ ] Cache, si existe, tiene invalidación definida.
+- [ ] Métricas y logs cubren endpoints críticos, jobs, retries y outbox.
 - [ ] OpenAPI actualizado desde schemas.
 - [ ] Logs estructurados con `requestId`, sin tokens completos.
 - [ ] `bun run typecheck` y tests relevantes pasan.
 
 ---
 
-## 14. Tabla De Referencia Rápida
+## 15. Tabla De Referencia Rápida
 
 | Situación | Ir a |
 |---|---|
@@ -394,6 +442,10 @@ No testear solo endpoints. Las reglas valiosas viven en use cases y utils.
 | Commands | `references/commands.md` |
 | Queries/read models | `references/queries.md` |
 | Performance por endpoint | `references/performance.md` |
+| Idempotencia | `references/idempotency.md` |
+| Rate limits/backpressure | `references/rate-limits-and-backpressure.md` |
+| Timeouts/retries | `references/timeouts-and-retries.md` |
+| Cache | `references/caching.md` |
 | Repositories | `references/repositories.md` |
 | Transacciones | `references/transactions.md` |
 | Outbox | `references/outbox.md` |
@@ -401,6 +453,7 @@ No testear solo endpoints. Las reglas valiosas viven en use cases y utils.
 | Multi-tenancy | `references/multi-tenancy.md` |
 | Paginación e índices | `references/pagination-and-indexes.md` |
 | DI sin container | `references/di.md` |
+| Uso de shared | `references/shared.md` |
 | Errores/Result | `references/errors.md` |
 | OpenAPI | `references/openapi.md` |
 | Testing | `references/testing.md` |
