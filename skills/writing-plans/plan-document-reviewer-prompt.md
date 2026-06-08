@@ -22,6 +22,7 @@ Task tool (general-purpose):
     | Completeness | TODOs, placeholders, incomplete tasks, missing steps |
     | Spec Alignment | Plan covers spec requirements, no major scope creep |
     | Task Decomposition | Tasks have clear boundaries, steps are actionable |
+    | Skill Scope | Broad skills include exact sections/reference files; no bare `hono-bun-api` unless whole skill is needed |
     | Buildability | Could an engineer follow this plan without getting stuck? |
 
     ## Calibration
@@ -36,6 +37,10 @@ Task tool (general-purpose):
 
     Approve unless there are serious gaps — missing requirements from the spec,
     contradictory steps, placeholder content, or tasks so vague they can't be acted on.
+    Treat an unscoped broad skill reference as actionable only when it would make
+    the implementer load a large irrelevant skill, for example `hono-bun-api`
+    on a narrow routing, validation, query, or testing task without a section or
+    `references/*.md` path.
 
     ## Output Format
 

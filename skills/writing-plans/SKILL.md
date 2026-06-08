@@ -56,7 +56,7 @@ Write `plan.md` first. It is the roadmap and global context.
 
 ## Required Skills
 - `test-driven-development` - all code behavior changes
-- `<domain-skill>` - <1-2 applicable rules>
+- `<domain-skill>` - <exact section/reference path + 1-2 applicable rules>
 
 ## File Map
 | Path | Action | Responsibility |
@@ -80,6 +80,20 @@ Before task details, discover relevant skills:
 3. Keep only relevant, trustworthy skills.
 4. Put global skills in `plan.md`; put task-specific rules only where they change execution.
 
+Section-scope broad skills:
+- Never cite a large skill bare when only one area applies.
+- Include the exact heading or reference file the executor should use.
+- Prefer reference files when they exist: `hono-bun-api/references/routing.md`, not just `hono-bun-api`.
+- Keep to 1-3 sections/files per task. If a task needs more, split it or move architecture context to `plan.md`.
+- Use bare `hono-bun-api` only for new project bootstrap, full architecture baseline, or feature walkthrough tasks.
+
+Examples:
+
+```markdown
+**Skills:** `test-driven-development`; `hono-bun-api` (`references/routing.md`, `references/validation.md`; controllers only adapt HTTP)
+**Skills:** `hono-bun-api` (`SKILL.md#6-flujo-de-request`, `references/commands.md`; use cases do not import Hono)
+```
+
 Task annotations should be short:
 
 ```markdown
@@ -87,6 +101,7 @@ Task annotations should be short:
 ```
 
 Do not paste long excerpts from skills into every task. Extract only the 1-2 rules that matter.
+Do not write `**Skills:** hono-bun-api` without a section/reference unless the whole skill is truly needed.
 
 ## 3. TDD by Default
 
@@ -124,7 +139,7 @@ Each task file must be self-contained. Use this compact shape:
 **Task type:** Business logic | Tests | Wiring | Config | Docs | Refactor
 **Files:** Create/modify/test exact paths
 **Blocked by:** T# | None
-**Skills:** `test-driven-development`; `<skill>` (<rule fragments>) | None
+**Skills:** `test-driven-development`; `<skill>` (<section/ref + rule fragments>) | None
 **Visual reference:** `docs/mocks/<file>.html` | None
 **Context:** <1-3 sentences: why this exists, current relevant state, contracts from prior tasks>
 
