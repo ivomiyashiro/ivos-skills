@@ -1,7 +1,7 @@
 {
   "name": "ivos-skills",
-  "version": "1.1.14",
-  "description": "Coleccion de skills para agentes de IA (Codex, OpenCode, Claude Code, Copilot CLI, Gemini CLI)",
+  "version": "1.1.15",
+  "description": "Coleccion de skills para herramientas, frameworks y librerias de desarrollo",
   "type": "module",
   "main": ".opencode/plugins/ivos-skills.js",
   "keywords": [
@@ -12,7 +12,11 @@
     "copilot-cli",
     "gemini-cli",
     "agent-skills",
-    "ai-agents"
+    "flutter",
+    "react",
+    "supabase",
+    "hono",
+    "bun"
   ],
   "author": "Ivan",
   "license": "MIT",

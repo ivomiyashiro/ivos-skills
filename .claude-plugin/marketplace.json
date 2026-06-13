@@ -1,6 +1,6 @@
 {
   "name": "ivos-skills",
-  "description": "Skills collection for software development: debugging, planning, Flutter, React, Hono/Bun APIs, Supabase, git workflows, code review, and more.",
+  "description": "Skills collection for development tools, frameworks, and libraries: Flutter, React, Hono/Bun APIs, Supabase, and Postgres.",
   "owner": {
     "name": "Ivan Miyashiro",
     "url": "https://github.com/ivomiyashiro"
@@ -8,18 +8,11 @@
   "plugins": [
     {
       "name": "ivos-skills",
-      "description": "A collection of skills for software development workflows covering debugging, planning, Flutter, React, Hono/Bun APIs, Supabase, git, code review, and more.",
+      "description": "A collection of skills for development tools, frameworks, and libraries covering Flutter, React, Hono/Bun APIs, Supabase, and Postgres.",
       "source": "./",
-      "version": "1.1.14",
-      "category": "productivity",
-      "tags": [
-        "skills",
-        "flutter",
-        "react",
-        "supabase",
-        "debugging",
-        "planning"
-      ]
+      "version": "1.1.15",
+      "category": "development-tools",
+      "tags": ["skills", "flutter", "react", "supabase", "hono", "bun", "postgres"]
     }
   ]
 }

@@ -1,7 +1,7 @@
 {
   "name": "ivos-skills",
-  "version": "1.1.14",
-  "description": "A collection of Codex skills for software development workflows: debugging, planning, Flutter, React, Hono/Bun APIs, Supabase, git, code review, and more.",
+  "version": "1.1.15",
+  "description": "A collection of Codex skills for development tools, frameworks, and libraries: Flutter, React, Hono/Bun APIs, Supabase, and Postgres.",
   "author": {
     "name": "Ivan Miyashiro",
     "url": "https://github.com/ivomiyashiro"
@@ -12,18 +12,19 @@
   "keywords": [
     "skills",
     "codex",
-    "software-development",
+    "development-tools",
     "flutter",
     "react",
     "supabase",
-    "debugging",
-    "planning"
+    "hono",
+    "bun",
+    "postgres"
   ],
   "skills": "../../skills/",
   "interface": {
     "displayName": "ivos-skills",
-    "shortDescription": "Software development skills for Codex",
-    "longDescription": "A personal collection of Codex skills for software development workflows, including systematic debugging, planning, TDD, code review, Flutter, React, Hono/Bun APIs, Supabase, git workflows, and frontend design.",
+    "shortDescription": "Tool and framework skills for Codex",
+    "longDescription": "A personal collection of Codex skills for development tools, frameworks, and libraries, including Flutter, React, Hono/Bun APIs, Supabase, and Postgres.",
     "developerName": "Ivan Miyashiro",
     "category": "Engineering",
     "capabilities": [
@@ -32,9 +33,7 @@
     ],
     "websiteURL": "https://github.com/ivomiyashiro/ivos-skills",
     "defaultPrompt": [
-      "Debug this issue systematically.",
-      "Review this code for bugs and improvements.",
-      "Plan a TDD implementation for this feature."
+      "Use the relevant ivos-skills skill for this tool, framework, or library task."
     ],
     "brandColor": "#2563EB",
     "screenshots": []

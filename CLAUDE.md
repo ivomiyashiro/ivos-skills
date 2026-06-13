@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-`ivos-skills` is a personal collection of skills for AI agents (Claude Code, OpenCode, Copilot CLI, Gemini CLI, etc.). Each skill is a Markdown-based reference guide that agents load at runtime to apply proven techniques and patterns.
+`ivos-skills` is a personal collection of tool, framework, and library skills for AI agents (Claude Code, OpenCode, Copilot CLI, Gemini CLI, etc.). Each skill is a Markdown-based reference guide that agents load at runtime for specific technologies such as Flutter, React, Hono/Bun, Supabase, and Postgres.
 
 ## Repository structure
 
@@ -49,8 +49,8 @@ description: Use when [specific triggering conditions and symptoms]
 ## Adding or editing a skill
 
 1. Create `skills/<name>/SKILL.md` following the structure above.
-2. Follow TDD: run a baseline scenario with a subagent *without* the skill first, document what fails, then write the skill to address those failures.
-3. Test with a subagent *with* the skill before committing.
+2. Keep the scope focused on concrete tools, frameworks, and libraries. Do not add general productivity or software-development-process skills.
+3. Test the skill before committing.
 4. **CRITICAL: VERSION BUMPING**. If you modify or add skills, YOU MUST ensure the version is bumped across ALL manifest files. The repo has a `scripts/bump-version.js` script that handles this. Just making a `git commit` will automatically trigger the `pre-commit` hook to run this script and sync the following files:
    - `plugin.json` (Antigravity/Gemini)
    - `package.json` (OpenCode/npm)
@@ -60,17 +60,6 @@ description: Use when [specific triggering conditions and symptoms]
 5. Commit and push — The `post-commit` hook will automatically create a git tag, and `git push` will push the tags so agents can pull the updates.
 
 No build step is required. Skills are plain Markdown files discovered by path.
-
-## Rendering flowcharts
-
-Skills may contain `dot` code blocks. Render them to SVG with:
-
-```bash
-node skills/writing-skills/render-graphs.js skills/<skill-name>
-node skills/writing-skills/render-graphs.js skills/<skill-name> --combine
-```
-
-Requires Graphviz (`dot` on PATH).
 
 ## Plugin systems
 
@@ -85,7 +74,7 @@ Requires Graphviz (`dot` on PATH).
 ## Key conventions
 
 - **CSO (Claude Search Optimization):** Description field must only describe *when* to trigger the skill, never the workflow. Descriptions that summarize workflow become shortcuts Claude takes instead of reading the full skill.
+- **Scope:** Keep this package limited to concrete tools, frameworks, and libraries.
 - **Token budget:** Getting-started and frequently-loaded skills target < 150–200 words. Other skills < 500 words.
 - **One great example beats many mediocre ones.** Prefer inline code for patterns < 50 lines; link to a separate file for heavy reference (100+ lines).
 - **Flowcharts only for non-obvious decisions** — never for linear steps, reference material, or code examples.
-- **No skill without a failing baseline test first** (same Iron Law as TDD).
