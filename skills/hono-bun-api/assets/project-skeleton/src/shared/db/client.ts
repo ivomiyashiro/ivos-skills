@@ -2,14 +2,33 @@ import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import postgres, { type Sql } from 'postgres';
 import * as schema from './schema';
 
+export type DbClientOptions = {
+  max: number;
+  prepare: boolean;
+};
+
+export const resolveDbClientOptions = ({
+  poolMax,
+  prepare,
+  transactionPooler,
+}: {
+  poolMax: number;
+  prepare: boolean;
+  transactionPooler: boolean;
+}): DbClientOptions => ({
+  max: poolMax,
+  prepare: transactionPooler ? false : prepare,
+});
+
 /**
  * Cliente Postgres compartido. Pool de 20 conexiones default.
  * Retorna { db, close } — close() drena el pool al shutdown.
- * Alternativas (Kysely, Bun.sql) en references/database.md.
+ * Mantener el driver y sus opciones en el composition root si el proyecto cambia de cliente.
  */
-export const buildDb = (databaseUrl: string) => {
+export const buildDb = (databaseUrl: string, options: DbClientOptions = { max: 20, prepare: true }) => {
   const sql: Sql = postgres(databaseUrl, {
-    max: 20,
+    max: options.max,
+    prepare: options.prepare,
     idle_timeout: 30,
     connect_timeout: 10,
   });

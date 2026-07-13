@@ -13,30 +13,35 @@ API opinada en TypeScript con modular monolith + CQRS lite. Scaffold del skill
 - **Pino** (structured logs)
 - **prom-client** (`/metrics`)
 
-## Arrancar
+## Bootstrap
 
 ```bash
-bun install
+bun install --frozen-lockfile
 cp .env.example .env
 # editar DATABASE_URL (Supabase Postgres URL funciona) y SUPABASE_*
 bun run db:migrate
+bun run typecheck
+bun test
 bun run dev
 ```
 
+- `bun.lock` esta versionado; usa `bun install --frozen-lockfile` para instalaciones reproducibles.
+- `db:migrate` aplica la migracion inicial de `examples`, incluida la columna `owner_id`.
 - Server: http://localhost:3000
-- Docs: http://localhost:3000/docs
+- Docs: http://localhost:3000/docs (en produccion requiere `EXPOSE_DOCS=true`)
 - Healthz: http://localhost:3000/healthz
 - Readyz: http://localhost:3000/readyz
-- Metrics: http://localhost:3000/metrics
+- Metrics: http://localhost:3000/metrics (en produccion requiere `EXPOSE_METRICS=true`)
 
 ## Auth (Supabase)
 
 `src/shared/auth/supabase.ts` trae `createSupabaseVerify`. En `src/app.ts` se
-conecta automaticamente si `SUPABASE_JWT_SECRET` esta definido.
+conecta automaticamente con `SUPABASE_JWKS_URL` (preferido) o
+`SUPABASE_JWT_SECRET` para proyectos HS256 existentes.
 
-Si `SUPABASE_JWT_SECRET` queda vacio, las requests caen como anonimas. Las rutas
-que requieran identidad deben cortar con `Unauthorized`/`Forbidden` desde
-use-cases/utils.
+Si no configurás un verificador, las requests caen como anónimas sólo fuera de
+producción. Las rutas del scaffold son privadas y devuelven `Unauthorized`; los
+use cases/policies deciden ownership y autorización fina.
 
 ## Estructura
 
@@ -71,11 +76,12 @@ src/
 bun run scaffold project
 ```
 
-Luego:
+El scaffold genera rutas autenticadas y una prueba HTTP autocontenida con un fake en memoria. Luego:
 
 1. Definir tabla en `src/shared/db/schema.ts`.
 2. Registrar repository/read model en `src/container.ts`.
 3. Montar rutas en `src/app.ts`.
+4. Reemplazar los adapters Drizzle placeholder por consultas para la tabla nueva.
 
 ```ts
 import { buildProjectsRoutes } from '@features/projects';
@@ -83,11 +89,13 @@ import { buildProjectsRoutes } from '@features/projects';
 app.route('/projects', buildProjectsRoutes(container));
 ```
 
+Cada feature declara `ProjectsUseCasesDeps` en `use-cases/projects.use-cases.ts`; el route builder recibe ese contrato en vez de `AppContainer`. El composition root debe satisfacerlo cuando conectes la feature.
+
 ## Convenciones
 
 1. Hono solo adapta HTTP.
 2. Use cases no importan Hono.
-3. Utils no importa Hono, Drizzle, Supabase ni Bun.
+3. Utils no importan Hono, Drizzle, Supabase ni Bun.
 4. Repository concentra persistencia y read models de la feature.
 5. Commands protegen invariantes y writes.
 6. Queries usan read models/Drizzle y devuelven DTOs.

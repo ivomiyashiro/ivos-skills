@@ -1,6 +1,7 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import { createApiRouter } from '@shared/hono/router';
-import type { AppContainer } from '@/container';
+import { requireAuth } from '@shared/middlewares/auth';
+import type { __Feature__UseCasesDeps } from '../use-cases/__features__.use-cases';
 import {
   Create__Feature__Input,
   Update__Feature__Input,
@@ -16,9 +17,18 @@ import {
   update__Feature__Controller,
 } from '../controller/__features__.controller';
 
-export const build__Features__Routes = (container: AppContainer) => {
+export const build__Features__Routes = (deps: __Feature__UseCasesDeps) => {
   const r = createApiRouter();
-  const ErrorBody = z.object({ kind: z.string() }).passthrough().openapi('ErrorBody');
+  const ErrorBody = z.object({ kind: z.string() }).openapi('ErrorBody');
+  const ErrorResponses = {
+    401: { description: 'Unauthorized', content: { 'application/json': { schema: ErrorBody } } },
+    403: { description: 'Forbidden', content: { 'application/json': { schema: ErrorBody } } },
+    404: { description: 'Not found', content: { 'application/json': { schema: ErrorBody } } },
+    409: { description: 'Conflict', content: { 'application/json': { schema: ErrorBody } } },
+    422: { description: 'Validation error', content: { 'application/json': { schema: ErrorBody } } },
+    500: { description: 'Internal server error', content: { 'application/json': { schema: ErrorBody } } },
+  };
+  r.use('*', requireAuth);
 
   r.openapi(
     createRoute({
@@ -31,10 +41,10 @@ export const build__Features__Routes = (container: AppContainer) => {
       },
       responses: {
         201: { description: 'Created', content: { 'application/json': { schema: __Feature__Dto } } },
-        422: { description: 'Validation error', content: { 'application/json': { schema: ErrorBody } } },
+        ...ErrorResponses,
       },
     }),
-    create__Feature__Controller(container) as any,
+    create__Feature__Controller(deps),
   );
 
   r.openapi(
@@ -49,12 +59,10 @@ export const build__Features__Routes = (container: AppContainer) => {
       },
       responses: {
         200: { description: 'Updated', content: { 'application/json': { schema: __Feature__Dto } } },
-        403: { description: 'Forbidden', content: { 'application/json': { schema: ErrorBody } } },
-        404: { description: 'Not found', content: { 'application/json': { schema: ErrorBody } } },
-        422: { description: 'Validation error', content: { 'application/json': { schema: ErrorBody } } },
+        ...ErrorResponses,
       },
     }),
-    update__Feature__Controller(container) as any,
+    update__Feature__Controller(deps),
   );
 
   r.openapi(
@@ -66,10 +74,10 @@ export const build__Features__Routes = (container: AppContainer) => {
       request: { params: __Feature__IdParam },
       responses: {
         200: { description: 'OK', content: { 'application/json': { schema: __Feature__Dto } } },
-        404: { description: 'Not found', content: { 'application/json': { schema: ErrorBody } } },
+        ...ErrorResponses,
       },
     }),
-    get__Feature__Controller(container) as any,
+    get__Feature__Controller(deps),
   );
 
   r.openapi(
@@ -81,10 +89,10 @@ export const build__Features__Routes = (container: AppContainer) => {
       request: { query: List__Features__Query },
       responses: {
         200: { description: 'OK', content: { 'application/json': { schema: List__Features__Response } } },
-        422: { description: 'Validation error', content: { 'application/json': { schema: ErrorBody } } },
+        ...ErrorResponses,
       },
     }),
-    list__Features__Controller(container) as any,
+    list__Features__Controller(deps),
   );
 
   return r;

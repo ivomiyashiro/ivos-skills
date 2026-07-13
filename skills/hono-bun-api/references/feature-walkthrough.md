@@ -115,7 +115,7 @@ export class ProjectReadModel {
 export type CreateProjectCommand = {
   organizationId: string;
   name: string;
-  ownerId: string;
+  actor: AuthPrincipal;
 };
 
 export const createProjectCommand = async (
@@ -124,7 +124,7 @@ export const createProjectCommand = async (
 ): Promise<Result<{ id: string }, AppError>> => {
   return deps.tx.run(async (db) => {
     const projectRepo = deps.createProjectRepo(db);
-    const decision = canCreateProject(command.ownerId);
+    const decision = canCreateProject(command.actor.userId);
     if (!decision.allowed) return failure(forbidden(decision.reason));
 
     const project = Project.create({ ...command, now: deps.clock.now() });
@@ -164,7 +164,7 @@ export const createProjectController =
         clock: container.clock,
         logger: c.get('logger'),
       },
-      { ...c.req.valid('json'), ownerId: c.get('auth')!.userId },
+      { ...c.req.valid('json'), actor: c.get('auth')! },
     );
 
     return toHttpResponse(c, result, 201);
@@ -179,6 +179,7 @@ Controller adapta HTTP. No contiene reglas de negocio.
 // features/projects/routes/projects.routes.ts
 export const buildProjectsRoutes = (container: AppContainer) => {
   const r = createApiRouter();
+  r.use('*', requireAuth);
 
   r.openapi(createRoute({ method: 'post', path: '/', ... }), createProjectController(container));
   r.openapi(createRoute({ method: 'get', path: '/', ... }), listProjectsController(container));
@@ -218,4 +219,5 @@ app.route('/projects', buildProjectsRoutes(container));
 - [ ] Commands pasan por repositories/write-side.
 - [ ] Queries usan read models/Drizzle.
 - [ ] Controllers no tienen reglas.
+- [ ] Feature privada por default; el use case autoriza actor, ownership y tenant.
 - [ ] Transactions envuelven múltiples writes/outbox.

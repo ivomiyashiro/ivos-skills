@@ -1,4 +1,5 @@
 import type { ErrorHandler } from 'hono';
+import { HTTPException } from 'hono/http-exception';
 import type { AppEnv } from '@shared/hono/types';
 
 /**
@@ -10,6 +11,8 @@ import type { AppEnv } from '@shared/hono/types';
  * detalles internos al cliente.
  */
 export const errorHandler: ErrorHandler<AppEnv> = (err, c) => {
+  if (err instanceof HTTPException) return err.getResponse();
+
   const logger = c.get('logger');
   logger?.error(
     {

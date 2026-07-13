@@ -3,20 +3,19 @@ import type { Result } from '@shared/result';
 import type { AppError } from './app-error';
 import type { AppEnv } from '@shared/hono/types';
 
-type StatusCode = 200 | 201 | 204;
+type SuccessStatusCode = 200 | 201;
 
 /**
  * Mapea un Result al response HTTP correspondiente. Switch exhaustivo sobre kind.
  * Si el caller no pasa successStatus, default 200.
  */
-export const toHttpResponse = <T>(
+export const toHttpResponse = <T extends object, TStatus extends SuccessStatusCode>(
   c: Context<AppEnv>,
   result: Result<T, AppError>,
-  successStatus: StatusCode = 200,
+  successStatus: TStatus,
 ) => {
   if (result.ok) {
-    if (successStatus === 204) return c.body(null, 204);
-    return c.json(result.value as object, successStatus);
+    return c.json(result.value, successStatus);
   }
 
   const err = result.error;

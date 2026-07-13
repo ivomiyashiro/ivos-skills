@@ -6,7 +6,7 @@
  *
  * Acá podés:
  *  - Configurar timezone, locale.
- *  - Levantar pglite o testcontainers (ver references/testing.md).
+ *  - Levantar PGlite o un contenedor Postgres cuando el caso lo necesite.
  *  - Hacer reset de DB entre tests.
  */
 

@@ -23,6 +23,7 @@ export const buildTestDb = async () => {
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS examples (
       id uuid PRIMARY KEY,
+      owner_id uuid NOT NULL,
       name text NOT NULL,
       status text NOT NULL DEFAULT 'draft',
       total numeric(12, 2) NOT NULL DEFAULT '0',

@@ -19,8 +19,8 @@ import type { VerifyFn } from '@shared/middlewares/auth';
  */
 
 export type SupabaseVerifyOptions =
-  | { mode: 'hs256'; jwtSecret: string; issuer?: string; audience?: string }
-  | { mode: 'jwks'; jwksUri: string; issuer?: string; audience?: string };
+  | { mode: 'hs256'; jwtSecret: string; issuer: string; audience: string; role: string }
+  | { mode: 'jwks'; jwksUri: string; issuer: string; audience: string; role: string };
 
 export const createSupabaseVerify = (opts: SupabaseVerifyOptions): VerifyFn => {
   const keyFn =
@@ -29,14 +29,15 @@ export const createSupabaseVerify = (opts: SupabaseVerifyOptions): VerifyFn => {
       : createRemoteJWKSet(new URL(opts.jwksUri));
 
   const verifyOpts = {
-    ...(opts.issuer && { issuer: opts.issuer }),
-    ...(opts.audience && { audience: opts.audience }),
+    algorithms: opts.mode === 'hs256' ? ['HS256'] : ['RS256', 'ES256'],
+    issuer: opts.issuer,
+    audience: opts.audience,
   };
 
   return async (token: string): Promise<AuthPrincipal | null> => {
     try {
       const { payload } = await jwtVerify(token, keyFn as never, verifyOpts);
-      if (!payload.sub) return null;
+      if (!payload.sub || payload.role !== opts.role) return null;
 
       const appMetadata = (payload.app_metadata ?? {}) as {
         roles?: string[];
@@ -44,11 +45,11 @@ export const createSupabaseVerify = (opts: SupabaseVerifyOptions): VerifyFn => {
       };
       const roles =
         appMetadata.roles ??
-        (appMetadata.role ? [appMetadata.role] : []);
+        (appMetadata.role ? [appMetadata.role] : [payload.role]);
 
       return {
         userId: payload.sub,
-        roles,
+        roles: roles.filter((role): role is string => typeof role === 'string'),
         claims: payload as Record<string, unknown>,
       };
     } catch {

@@ -1,5 +1,5 @@
-import { success, type Result } from '@shared/result';
-import type { AppError } from '@shared/errors/app-error';
+import { failure, success, type Result } from '@shared/result';
+import { unauthorized, type AppError } from '@shared/errors/app-error';
 import type { Logger } from '@shared/observability/logger';
 import type { EventBus } from '@shared/events/event-bus';
 import type { Clock } from '@/container';
@@ -12,7 +12,7 @@ import type { ExampleDto } from '../../examples.schemas';
 export type CreateExampleCommand = {
   name: string;
   total?: number;
-  actorId: string | null;
+  ownerId: string;
 };
 
 export type CreateExampleDeps = {
@@ -27,10 +27,13 @@ export const createExampleCommand = async (
   deps: CreateExampleDeps,
   command: CreateExampleCommand,
 ): Promise<Result<ExampleDto, AppError>> => {
+  if (!command.ownerId) return failure(unauthorized('authentication required'));
+
   const now = deps.clock.now();
   const example = Example.create({
     name: command.name,
-    total: command.total ?? 0,
+      total: command.total ?? 0,
+      ownerId: command.ownerId,
     now,
   });
 
@@ -38,8 +41,8 @@ export const createExampleCommand = async (
     await deps.createRepo(db).save(example);
   });
 
-  deps.eventBus.publishMany(example.pullEvents());
-  deps.logger.info({ id: example.id, actorId: command.actorId }, 'example created');
+  await deps.eventBus.publishMany(example.pullEvents());
+  deps.logger.info({ id: example.id, ownerId: command.ownerId }, 'example created');
 
   return success({
     id: example.id,

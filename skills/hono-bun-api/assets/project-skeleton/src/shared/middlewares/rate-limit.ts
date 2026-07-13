@@ -10,13 +10,22 @@ export type RateLimitOptions = {
   windowMs: number;
   max: number;
   key?: (c: Context<AppEnv>) => string;
+  maxBuckets?: number;
+  now?: () => number;
+  trustProxy?: boolean;
 };
 
-const defaultKey = (c: Context<AppEnv>) =>
-  c.get('auth')?.userId ??
-  c.req.header('x-forwarded-for') ??
-  c.req.header('cf-connecting-ip') ??
-  'anonymous';
+const defaultKey = (trustProxy: boolean) => (c: Context<AppEnv>) => {
+  const authenticatedKey = c.get('auth')?.userId;
+  if (authenticatedKey) return authenticatedKey;
+
+  if (trustProxy) {
+    const forwardedFor = c.req.header('x-forwarded-for')?.split(',')[0]?.trim();
+    if (forwardedFor) return forwardedFor;
+  }
+
+  return 'anonymous';
+};
 
 /**
  * In-memory rate limit. Útil para desarrollo o una sola instancia.
@@ -24,14 +33,31 @@ const defaultKey = (c: Context<AppEnv>) =>
  */
 export const rateLimit = (options: RateLimitOptions): MiddlewareHandler<AppEnv> => {
   const buckets = new Map<string, Bucket>();
-  const keyFn = options.key ?? defaultKey;
+  const keyFn = options.key ?? defaultKey(options.trustProxy ?? false);
+  const maxBuckets = options.maxBuckets ?? 10_000;
+  const nowFn = options.now ?? Date.now;
 
   return async (c, next) => {
-    const now = Date.now();
+    const now = nowFn();
+    for (const [bucketKey, bucket] of buckets) {
+      if (bucket.resetAt <= now) buckets.delete(bucketKey);
+    }
+
     const key = keyFn(c);
     const bucket = buckets.get(key);
 
     if (!bucket || bucket.resetAt <= now) {
+      if (buckets.size >= maxBuckets) {
+        let oldestKey: string | undefined;
+        let oldestResetAt = Number.POSITIVE_INFINITY;
+        for (const [bucketKey, currentBucket] of buckets) {
+          if (currentBucket.resetAt < oldestResetAt) {
+            oldestKey = bucketKey;
+            oldestResetAt = currentBucket.resetAt;
+          }
+        }
+        if (oldestKey) buckets.delete(oldestKey);
+      }
       buckets.set(key, { count: 1, resetAt: now + options.windowMs });
       await next();
       return;

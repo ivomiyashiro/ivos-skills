@@ -6,7 +6,7 @@ import type { AppEnv, AuthPrincipal } from '@shared/hono/types';
  * una función que toma el token raw y retorna el principal o null.
  *
  * Default del skeleton: Supabase (ver shared/auth/supabase.ts). Para otros IdPs
- * (Auth0, Cognito, AAAS, API keys), ver references/auth.md.
+ * (Auth0, Cognito, AAAS o API keys), proveer otro VerifyFn desde la composición de la app.
  *
  * Uso típico en app.ts:
  *   app.use('*', authMiddleware(createSupabaseVerify({ mode: 'hs256', jwtSecret })));

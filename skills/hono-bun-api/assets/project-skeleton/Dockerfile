@@ -3,21 +3,21 @@
 # Build: docker build -t my-api .
 # Run:   docker run -p 3000:3000 --env-file .env my-api
 
-FROM oven/bun:1-alpine AS deps
+FROM oven/bun:1.3.5-alpine AS deps
 WORKDIR /app
-COPY package.json bun.lockb* ./
+COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile --production
 
-FROM oven/bun:1-alpine AS builder
+FROM oven/bun:1.3.5-alpine AS builder
 WORKDIR /app
-COPY package.json bun.lockb* ./
+COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 COPY tsconfig.json bunfig.toml drizzle.config.ts ./
 COPY src ./src
 COPY scripts ./scripts
 RUN bun build src/server.ts --target=bun --outdir=dist --minify
 
-FROM oven/bun:1-alpine
+FROM oven/bun:1.3.5-alpine
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=deps /app/node_modules ./node_modules

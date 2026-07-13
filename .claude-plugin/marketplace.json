@@ -10,7 +10,7 @@
       "name": "ivos-skills",
       "description": "A collection of skills for software development workflows covering debugging, planning, Flutter, React, Hono/Bun APIs, Supabase, git, code review, and more.",
       "source": "./",
-      "version": "1.1.14",
+      "version": "1.1.15",
       "category": "productivity",
       "tags": [
         "skills",

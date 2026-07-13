@@ -1,11 +1,11 @@
 import { failure, success, type Result } from '@shared/result';
 import { notFound, type AppError } from '@shared/errors/app-error';
-import type { ExampleReadModel } from '../../repository/example-read-model';
+import type { ExampleReadModel } from '../examples.use-cases';
 import type { ExampleDto } from '../../examples.schemas';
 
 export type GetExampleByIdQuery = {
   id: string;
-  actorId: string | null;
+  ownerId: string;
 };
 
 export type GetExampleByIdDeps = {
@@ -16,9 +16,7 @@ export const getExampleByIdQuery = async (
   deps: GetExampleByIdDeps,
   query: GetExampleByIdQuery,
 ): Promise<Result<ExampleDto, AppError>> => {
-  void query.actorId;
-
-  const example = await deps.readModel.getById(query.id);
+  const example = await deps.readModel.getById(query.id, query.ownerId);
   if (!example) return failure(notFound('Example', query.id));
 
   return success(example);

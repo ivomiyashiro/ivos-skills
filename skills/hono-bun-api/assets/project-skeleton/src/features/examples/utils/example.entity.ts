@@ -3,6 +3,7 @@ import type { ExampleEvent } from './example.events';
 
 export type ExampleProps = {
   id: string;
+  ownerId: string;
   name: string;
   status: ExampleStatus;
   total: number;
@@ -15,9 +16,10 @@ export class Example {
 
   private constructor(private props: ExampleProps) {}
 
-  static create(input: { name: string; total: number; now: Date }): Example {
+  static create(input: { name: string; total: number; ownerId: string; now: Date }): Example {
     const example = new Example({
       id: crypto.randomUUID(),
+      ownerId: input.ownerId,
       name: input.name,
       status: 'draft',
       total: input.total,
@@ -40,6 +42,10 @@ export class Example {
 
   get id() {
     return this.props.id;
+  }
+
+  get ownerId() {
+    return this.props.ownerId;
   }
 
   get name() {

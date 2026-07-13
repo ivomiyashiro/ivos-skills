@@ -1,6 +1,7 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import { createApiRouter } from '@shared/hono/router';
-import type { AppContainer } from '@/container';
+import { requireAuth } from '@shared/middlewares/auth';
+import type { ExampleUseCasesDeps } from '../use-cases/examples.use-cases';
 import {
   CreateExampleInput,
   UpdateExampleInput,
@@ -16,9 +17,18 @@ import {
   updateExampleController,
 } from '../controller/examples.controller';
 
-export const buildExamplesRoutes = (container: AppContainer) => {
+export const buildExamplesRoutes = (deps: ExampleUseCasesDeps) => {
   const r = createApiRouter();
-  const ErrorBody = z.object({ kind: z.string() }).passthrough().openapi('ErrorBody');
+  const ErrorBody = z.object({ kind: z.string() }).openapi('ErrorBody');
+  const ErrorResponses = {
+    401: { description: 'Unauthorized', content: { 'application/json': { schema: ErrorBody } } },
+    403: { description: 'Forbidden', content: { 'application/json': { schema: ErrorBody } } },
+    404: { description: 'Not found', content: { 'application/json': { schema: ErrorBody } } },
+    409: { description: 'Conflict', content: { 'application/json': { schema: ErrorBody } } },
+    422: { description: 'Validation error', content: { 'application/json': { schema: ErrorBody } } },
+    500: { description: 'Internal server error', content: { 'application/json': { schema: ErrorBody } } },
+  };
+  r.use('*', requireAuth);
 
   r.openapi(
     createRoute({
@@ -31,10 +41,10 @@ export const buildExamplesRoutes = (container: AppContainer) => {
       },
       responses: {
         201: { description: 'Created', content: { 'application/json': { schema: ExampleDto } } },
-        422: { description: 'Validation error', content: { 'application/json': { schema: ErrorBody } } },
+        ...ErrorResponses,
       },
     }),
-    createExampleController(container) as any,
+    createExampleController(deps),
   );
 
   r.openapi(
@@ -49,12 +59,10 @@ export const buildExamplesRoutes = (container: AppContainer) => {
       },
       responses: {
         200: { description: 'Updated', content: { 'application/json': { schema: ExampleDto } } },
-        403: { description: 'Forbidden', content: { 'application/json': { schema: ErrorBody } } },
-        404: { description: 'Not found', content: { 'application/json': { schema: ErrorBody } } },
-        422: { description: 'Validation error', content: { 'application/json': { schema: ErrorBody } } },
+        ...ErrorResponses,
       },
     }),
-    updateExampleController(container) as any,
+    updateExampleController(deps),
   );
 
   r.openapi(
@@ -66,10 +74,10 @@ export const buildExamplesRoutes = (container: AppContainer) => {
       request: { params: ExampleIdParam },
       responses: {
         200: { description: 'OK', content: { 'application/json': { schema: ExampleDto } } },
-        404: { description: 'Not found', content: { 'application/json': { schema: ErrorBody } } },
+        ...ErrorResponses,
       },
     }),
-    getExampleController(container) as any,
+    getExampleController(deps),
   );
 
   r.openapi(
@@ -81,10 +89,10 @@ export const buildExamplesRoutes = (container: AppContainer) => {
       request: { query: ListExamplesQuery },
       responses: {
         200: { description: 'OK', content: { 'application/json': { schema: ListExamplesResponse } } },
-        422: { description: 'Validation error', content: { 'application/json': { schema: ErrorBody } } },
+        ...ErrorResponses,
       },
     }),
-    listExamplesController(container) as any,
+    listExamplesController(deps),
   );
 
   return r;

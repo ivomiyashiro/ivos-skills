@@ -1,8 +1,15 @@
-import type { __Feature__Insert, __Feature__Row } from '@shared/db/schema';
 import { __Feature__ } from '../utils/__feature__.entity';
 
+export type __Feature__Persistence = {
+  id: string;
+  name: string;
+  status: __Feature__['status'];
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 export const __Feature__Mapper = {
-  toDomain(row: __Feature__Row): __Feature__ {
+  toDomain(row: __Feature__Persistence): __Feature__ {
     return __Feature__.rehydrate({
       id: row.id,
       name: row.name,
@@ -12,7 +19,7 @@ export const __Feature__Mapper = {
     });
   },
 
-  toPersistence(entity: __Feature__): __Feature__Insert {
+  toPersistence(entity: __Feature__): __Feature__Persistence {
     return {
       id: entity.id,
       name: entity.name,

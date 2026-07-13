@@ -12,8 +12,8 @@ export const silentLogger = pino({ level: 'silent' });
 
 /** EventBus no-op para tests que no inspeccionan eventos. */
 export const noopBus: EventBus = {
-  publish: () => {},
-  publishMany: () => {},
+  publish: async () => {},
+  publishMany: async () => {},
   on: () => {},
   off: () => {},
 };
@@ -23,8 +23,8 @@ export const createRecordingBus = () => {
   const events: DomainEvent[] = [];
   return {
     bus: {
-      publish: (e: DomainEvent) => events.push(e),
-      publishMany: (es: DomainEvent[]) => events.push(...es),
+      publish: async (e: DomainEvent) => { events.push(e); },
+      publishMany: async (es: DomainEvent[]) => { events.push(...es); },
       on: () => {},
       off: () => {},
     } satisfies EventBus,

@@ -144,7 +144,7 @@ await admin.auth.admin.updateUserById(userId, {
 });
 ```
 
-### Uso en rutas
+### Rutas privadas por default
 
 ```ts
 const r = new OpenAPIHono<AppEnv>();
@@ -158,6 +158,11 @@ r.openapi(createOrderSpec, async (c) => {
 const adminRouter = new OpenAPIHono<AppEnv>();
 adminRouter.use('*', requireAuth, requireRole('admin'));
 ```
+
+Cada feature debe montar `requireAuth` como default. Declarar una ruta pública de
+forma explícita y documentar por qué lo es; no dejarla pública porque el fixture
+de test todavía no tiene token. `requireRole` puede rechazar temprano permisos
+gruesos, pero no reemplaza la autorización de recursos en el use case.
 
 ### OpenAPI security scheme
 
@@ -181,29 +186,40 @@ Scalar muestra "Authorize" para probar con token.
 
 Si **además** de Supabase Auth usás Supabase como DB y querés RLS:
 
-1. Mantenés el `DATABASE_URL` apuntando a Supabase Postgres.
-2. En cada request, abrís una conexión que pasa el JWT al server Postgres para que
-   las políticas RLS vean `auth.uid()`. Esto se hace via `SET LOCAL` dentro de una
-   transacción:
+1. Mantené el `DATABASE_URL` apuntando a Supabase Postgres con un rol
+   least-privileged sujeto a RLS.
+2. Después de verificar el JWT, pasá los claims verificados al server Postgres
+   dentro de una transacción. `SET LOCAL` evita que el contexto quede en el pool:
 
 ```ts
 // shared/db/with-rls.ts
+import { sql } from 'drizzle-orm';
 import type { Db } from './client';
+import type { AuthPrincipal } from '../hono/types';
 
 export const withRlsContext = async <T>(
   db: Db,
-  jwt: string,
+  principal: AuthPrincipal,
   fn: (tx: Db) => Promise<T>,
 ): Promise<T> =>
   db.transaction(async (tx) => {
-    await tx.execute(sql`SET LOCAL request.jwt.claim.sub = ${decoded.sub}`);
+    await tx.execute(sql`
+      select set_config('request.jwt.claim.sub', ${principal.userId}, true)
+    `);
+    await tx.execute(sql`
+      select set_config('request.jwt.claim.role', 'authenticated', true)
+    `);
     return fn(tx as Db);
   });
 ```
 
-Para la mayoría de los casos, **chequear ownership en el handler** es más simple
-y suficiente — RLS solo paga cuando el modelo de permisos es complejo o cuando
-también tenés clientes que pegan directo a PostgREST.
+No decodifiques ni reenvíes un JWT sin verificar: `principal` debe provenir de
+`VerifyFn`. RLS es defensa en profundidad, útil también para clientes directos a
+PostgREST; la autorización de negocio sigue en el use case o policy. RLS no tiene
+efecto si la conexión directa a Postgres usa un superuser o un rol con
+`BYPASSRLS`. `SUPABASE_SERVICE_ROLE_KEY` también bypassa RLS en las APIs de
+Supabase, por lo que debe quedar en jobs/admin workers separados del tráfico de
+usuarios.
 
 ---
 
@@ -294,16 +310,16 @@ app.use('*', async (c, next) => {
 
 ---
 
-## Authorization fino en el handler
+## Authorization fina en el use case
 
 `requireRole` es coarse-grained. Para "¿este usuario puede editar este recurso?",
-el handler decide:
+el controller pasa el actor y el use case decide:
 
 ```ts
-export const updateXHandler = async (deps, input) => {
+export const updateX = async (deps, input) => {
   const x = await deps.repo.findById(input.id);
   if (!x) return failure(notFound('X', input.id));
-  if (x.ownerId !== deps.userId) return failure(forbidden('not owner'));
+  if (x.ownerId !== input.actor.userId) return failure(forbidden('not owner'));
   // ...
 };
 ```
@@ -311,6 +327,8 @@ export const updateXHandler = async (deps, input) => {
 ## Anti-patrones
 
 - ❌ Verificar JWT manualmente en cada handler. Que el middleware lo haga una vez.
+- ❌ Decidir ownership o permisos de negocio en el handler. Pasar el principal al
+  use case y decidirlo allí o en una policy pura.
 - ❌ `throw` en `verify` para tokens inválidos. Return `null`; el middleware decide
   401.
 - ❌ Filtrar info del principal en el response body (`{ ...auth }`). Devolver solo

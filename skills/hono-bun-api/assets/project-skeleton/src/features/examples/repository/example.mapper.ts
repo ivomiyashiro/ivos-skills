@@ -5,6 +5,7 @@ export const ExampleMapper = {
   toDomain(row: ExampleRow): Example {
     return Example.rehydrate({
       id: row.id,
+      ownerId: row.ownerId,
       name: row.name,
       status: row.status,
       total: Number(row.total),
@@ -16,6 +17,7 @@ export const ExampleMapper = {
   toPersistence(example: Example): ExampleInsert {
     return {
       id: example.id,
+      ownerId: example.ownerId,
       name: example.name,
       status: example.status,
       total: String(example.total),

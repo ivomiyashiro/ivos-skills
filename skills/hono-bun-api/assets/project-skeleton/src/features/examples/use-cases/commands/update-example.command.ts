@@ -1,12 +1,11 @@
 import { failure, success, type Result } from '@shared/result';
-import { forbidden, notFound, type AppError } from '@shared/errors/app-error';
+import { notFound, type AppError } from '@shared/errors/app-error';
 import type { Logger } from '@shared/observability/logger';
 import type { EventBus } from '@shared/events/event-bus';
 import type { Clock } from '@/container';
 import type { Db } from '@shared/db/client';
 import type { TransactionManager } from '@shared/db/transaction';
 import type { ExampleRepository } from '../../repository/example.repository';
-import { canUpdateExample } from '../../utils/example.policies';
 import type { ExampleDto } from '../../examples.schemas';
 import type { ExampleStatus } from '../../examples.schemas';
 
@@ -15,7 +14,7 @@ export type UpdateExampleCommand = {
   name?: string;
   status?: ExampleStatus;
   total?: number;
-  actorId: string | null;
+  ownerId: string;
 };
 
 export type UpdateExampleDeps = {
@@ -30,12 +29,9 @@ export const updateExampleCommand = async (
   deps: UpdateExampleDeps,
   command: UpdateExampleCommand,
 ): Promise<Result<ExampleDto, AppError>> => {
-  const decision = canUpdateExample(command.actorId);
-  if (!decision.allowed) return failure(forbidden(decision.reason));
-
   const updated = await deps.tx.run(async (db) => {
     const repo = deps.createRepo(db);
-    const example = await repo.findById(command.id);
+    const example = await repo.findById(command.id, command.ownerId);
     if (!example) return null;
 
     example.update({
@@ -51,8 +47,8 @@ export const updateExampleCommand = async (
 
   if (!updated) return failure(notFound('Example', command.id));
 
-  deps.eventBus.publishMany(updated.pullEvents());
-  deps.logger.info({ id: updated.id, actorId: command.actorId }, 'example updated');
+  await deps.eventBus.publishMany(updated.pullEvents());
+  deps.logger.info({ id: updated.id, ownerId: command.ownerId }, 'example updated');
 
   return success({
     id: updated.id,

@@ -45,10 +45,14 @@ endpoints.
 ## Reglas
 
 - Routes definen OpenAPI y HTTP method/path.
+- Cada feature es privada por default: `r.use('*', requireAuth)`. Una ruta pública
+  requiere una declaración explícita y una razón documentada.
 - Controllers adaptan request/response.
+- Controllers pasan el principal autenticado al use case; el use case/policy
+  autoriza ownership, tenancy y reglas de negocio.
 - Use cases no importan Hono.
 - No poner SQL ni reglas de negocio en routes.
-- Usar `requireAuth`/middleware si aplica a grupos enteros de rutas.
+- `requireRole` sirve para rechazos gruesos, no reemplaza autorización fina.
 
 ## Sub-recursos
 

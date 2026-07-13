@@ -6,7 +6,7 @@ import type { ExampleDto, ListExamplesQuery, ListExamplesResponse } from '../exa
 export class ExampleReadModel {
   constructor(private readonly db: Db) {}
 
-  async getById(id: string): Promise<ExampleDto | null> {
+  async getById(id: string, ownerId: string): Promise<ExampleDto | null> {
     const rows = await this.db
       .select({
         id: examples.id,
@@ -17,13 +17,13 @@ export class ExampleReadModel {
         updatedAt: examples.updatedAt,
       })
       .from(examples)
-      .where(eq(examples.id, id))
+      .where(and(eq(examples.id, id), eq(examples.ownerId, ownerId)))
       .limit(1);
 
     return rows[0] ? this.toDto(rows[0]) : null;
   }
 
-  async list(input: ListExamplesQuery): Promise<ListExamplesResponse> {
+  async list(input: ListExamplesQuery & { ownerId: string }): Promise<ListExamplesResponse> {
     const rows = await this.db
       .select({
         id: examples.id,
@@ -36,6 +36,7 @@ export class ExampleReadModel {
       .from(examples)
       .where(
         and(
+          eq(examples.ownerId, input.ownerId),
           input.status ? eq(examples.status, input.status) : undefined,
           input.cursor ? gt(examples.id, input.cursor) : undefined,
         ),

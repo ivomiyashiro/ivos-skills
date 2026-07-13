@@ -3,6 +3,8 @@ import type { AppEnv } from '@shared/hono/types';
 import { baseLogger } from '@shared/observability/logger';
 import { httpRequestsTotal, httpRequestDurationSeconds } from '@shared/observability/metrics';
 
+export const metricRouteLabel = (routePath: string | undefined) => routePath ?? 'unmatched';
+
 /**
  * Logger middleware: crea un child logger con requestId, path y method.
  * Loguea inicio y fin del request, mide duración y registra métrica Prometheus.
@@ -26,7 +28,7 @@ export const loggerMiddleware = (): MiddlewareHandler<AppEnv> => async (c, next)
   const durationMs = performance.now() - start;
   const durationSec = durationMs / 1000;
   const status = c.res.status;
-  const route = c.req.routePath || c.req.path;
+  const route = metricRouteLabel(c.req.routePath);
 
   httpRequestsTotal.inc({ method: c.req.method, route, status: String(status) });
   httpRequestDurationSeconds.observe(

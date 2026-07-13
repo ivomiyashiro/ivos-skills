@@ -8,6 +8,7 @@ import { pgTable, uuid, text, timestamp, numeric } from 'drizzle-orm/pg-core';
 
 export const examples = pgTable('examples', {
   id: uuid('id').primaryKey().defaultRandom(),
+  ownerId: uuid('owner_id').notNull(),
   name: text('name').notNull(),
   status: text('status', { enum: ['draft', 'active', 'archived'] }).notNull().default('draft'),
   total: numeric('total', { precision: 12, scale: 2 }).notNull().default('0'),

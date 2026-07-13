@@ -2,9 +2,8 @@ import type { Db } from '@shared/db/client';
 import type { TransactionManager } from '@shared/db/transaction';
 import type { EventBus } from '@shared/events/event-bus';
 import type { Logger } from '@shared/observability/logger';
-import type { Clock } from '@/container';
 import type { __Feature__Repository } from '../repository/__feature__.repository';
-import type { __Feature__ReadModel } from '../repository/__feature__-read-model';
+import type { __Feature__Dto, List__Features__Query, List__Features__Response } from '../__features__.schemas';
 import {
   create__Feature__Command,
   type Create__Feature__Command,
@@ -22,13 +21,20 @@ import {
   type List__Features__QueryRequest,
 } from './queries/list-__features__.query';
 
+export type __Feature__Clock = { now: () => Date };
+
+export type __Feature__ReadModel = {
+  getById(id: string): Promise<__Feature__Dto | null>;
+  list(input: List__Features__Query): Promise<List__Features__Response>;
+};
+
 export type __Feature__UseCasesDeps = {
   createRepo: (db: Db) => __Feature__Repository;
   readModel: __Feature__ReadModel;
   tx: TransactionManager;
   eventBus: EventBus;
   logger: Logger;
-  clock: Clock;
+  clock: __Feature__Clock;
 };
 
 export const create__Feature__UseCases = (deps: __Feature__UseCasesDeps) => ({

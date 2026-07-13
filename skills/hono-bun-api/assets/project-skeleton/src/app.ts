@@ -1,9 +1,12 @@
 import { createApiRouter } from '@shared/hono/router';
 import { env } from '@shared/config/env';
+import { shouldExposeOperationalEndpoint } from '@shared/config/operational';
 import { requestId } from '@shared/middlewares/request-id';
 import { loggerMiddleware } from '@shared/middlewares/logger';
 import { errorHandler } from '@shared/middlewares/error-handler';
 import { authMiddleware, type VerifyFn } from '@shared/middlewares/auth';
+import { rateLimit } from '@shared/middlewares/rate-limit';
+import { requestTimeout } from '@shared/middlewares/request-timeout';
 import { createSupabaseVerify } from '@shared/auth/supabase';
 import { metricsHandler } from '@shared/observability/metrics';
 import { mountDocs } from '@shared/openapi/docs';
@@ -25,12 +28,29 @@ export const buildApp = (container: AppContainer) => {
 
   app.use('*', requestId());
   app.use('*', loggerMiddleware());
+  app.use('*', requestTimeout(env.REQUEST_TIMEOUT_MS));
+  app.use('*', rateLimit({
+    windowMs: env.RATE_LIMIT_WINDOW_MS,
+    max: env.RATE_LIMIT_MAX,
+    maxBuckets: env.RATE_LIMIT_MAX_BUCKETS,
+    trustProxy: env.TRUST_PROXY,
+  }));
 
-  const verify: VerifyFn = env.SUPABASE_JWT_SECRET
+  const verify: VerifyFn = env.SUPABASE_JWKS_URL
+    ? createSupabaseVerify({
+        mode: 'jwks',
+        jwksUri: env.SUPABASE_JWKS_URL,
+        issuer: `${env.SUPABASE_URL}/auth/v1`,
+        audience: 'authenticated',
+        role: 'authenticated',
+      })
+    : env.SUPABASE_JWT_SECRET
     ? createSupabaseVerify({
         mode: 'hs256',
         jwtSecret: env.SUPABASE_JWT_SECRET,
-        ...(env.SUPABASE_URL && { issuer: `${env.SUPABASE_URL}/auth/v1` }),
+        issuer: `${env.SUPABASE_URL}/auth/v1`,
+        audience: 'authenticated',
+        role: 'authenticated',
       })
     : async () => null;
   app.use('*', authMiddleware(verify));
@@ -38,11 +58,15 @@ export const buildApp = (container: AppContainer) => {
   app.onError(errorHandler);
 
   app.get('/healthz', (c) => c.json({ status: 'ok' }));
-  app.get('/metrics', metricsHandler);
+  if (shouldExposeOperationalEndpoint(env.NODE_ENV, env.EXPOSE_METRICS)) {
+    app.get('/metrics', metricsHandler);
+  }
 
   app.route('/examples', buildExamplesRoutes(container));
 
-  mountDocs(app);
+  if (shouldExposeOperationalEndpoint(env.NODE_ENV, env.EXPOSE_DOCS)) {
+    mountDocs(app);
+  }
 
   return app;
 };

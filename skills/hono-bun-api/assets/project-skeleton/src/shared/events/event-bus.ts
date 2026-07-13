@@ -26,13 +26,19 @@ export type EventBus = ReturnType<typeof createEventBus>;
 export const createEventBus = () => {
   const emitter = new EventEmitter();
   emitter.setMaxListeners(50);
+  const publish = async (event: DomainEvent) => {
+    const results = await Promise.allSettled(
+      emitter.listeners(event.type).map((handler) => (handler as EventHandler)(event)),
+    );
+    for (const result of results) {
+      if (result.status === 'rejected') console.error('event handler failed', result.reason);
+    }
+  };
 
   return {
-    publish: (event: DomainEvent) => {
-      emitter.emit(event.type, event);
-    },
-    publishMany: (events: DomainEvent[]) => {
-      for (const event of events) emitter.emit(event.type, event);
+    publish,
+    publishMany: async (events: DomainEvent[]) => {
+      for (const event of events) await publish(event);
     },
     on: <E extends DomainEvent>(type: E['type'], handler: EventHandler<E>) => {
       emitter.on(type, handler as EventHandler);

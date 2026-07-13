@@ -1,7 +1,7 @@
 import type { Example } from '../utils/example.entity';
 
 export interface ExampleRepository {
-  findById(id: string): Promise<Example | null>;
+  findById(id: string, ownerId: string): Promise<Example | null>;
   save(example: Example): Promise<void>;
-  delete(id: string): Promise<void>;
+  delete(id: string, ownerId: string): Promise<void>;
 }

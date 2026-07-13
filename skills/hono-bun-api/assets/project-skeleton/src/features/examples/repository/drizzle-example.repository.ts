@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import type { Db } from '@shared/db/client';
 import { examples } from '@shared/db/schema';
 import type { ExampleRepository } from './example.repository';
@@ -8,8 +8,12 @@ import { ExampleMapper } from './example.mapper';
 export class DrizzleExampleRepository implements ExampleRepository {
   constructor(private readonly db: Db) {}
 
-  async findById(id: string): Promise<Example | null> {
-    const rows = await this.db.select().from(examples).where(eq(examples.id, id)).limit(1);
+  async findById(id: string, ownerId: string): Promise<Example | null> {
+    const rows = await this.db
+      .select()
+      .from(examples)
+      .where(and(eq(examples.id, id), eq(examples.ownerId, ownerId)))
+      .limit(1);
     return rows[0] ? ExampleMapper.toDomain(rows[0]) : null;
   }
 
@@ -30,7 +34,7 @@ export class DrizzleExampleRepository implements ExampleRepository {
       });
   }
 
-  async delete(id: string): Promise<void> {
-    await this.db.delete(examples).where(eq(examples.id, id));
+  async delete(id: string, ownerId: string): Promise<void> {
+    await this.db.delete(examples).where(and(eq(examples.id, id), eq(examples.ownerId, ownerId)));
   }
 }

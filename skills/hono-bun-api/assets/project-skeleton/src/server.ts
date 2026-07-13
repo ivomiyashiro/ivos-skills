@@ -1,6 +1,7 @@
 import { env } from '@shared/config/env';
 import { buildApp } from './app';
 import { createContainer } from './container';
+import { shutdownGracefully } from '@shared/utils/shutdown';
 
 const container = createContainer();
 const app = buildApp(container);
@@ -16,6 +17,7 @@ const server = Bun.serve({
   port: env.PORT,
   fetch: app.fetch,
   idleTimeout: 30,
+  maxRequestBodySize: env.REQUEST_BODY_LIMIT_BYTES,
 });
 
 logger.info({ port: env.PORT, env: env.NODE_ENV }, 'server started');
@@ -25,12 +27,13 @@ const shutdown = async (signal: string) => {
   shuttingDown = true;
   logger.info({ signal }, 'shutting down');
 
-  await Bun.sleep(env.SHUTDOWN_GRACE_MS);
-
-  server.stop(false);
-
   try {
-    await container.closeDb(5);
+    await shutdownGracefully({
+      stopServer: () => server.stop(false),
+      wait: Bun.sleep,
+      closeDb: () => container.closeDb(5),
+      graceMs: env.SHUTDOWN_GRACE_MS,
+    });
     logger.info('db pool closed');
   } catch (err) {
     logger.error({ err }, 'error closing db pool');

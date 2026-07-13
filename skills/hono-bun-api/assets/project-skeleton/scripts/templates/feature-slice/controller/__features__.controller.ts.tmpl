@@ -1,68 +1,64 @@
 import type { Context } from 'hono';
 import type { AppEnv } from '@shared/hono/types';
 import { toHttpResponse } from '@shared/errors/to-http';
-import type { AppContainer } from '@/container';
-import { create__Feature__UseCases } from '../use-cases/__features__.use-cases';
+import { create__Feature__UseCases, type __Feature__UseCasesDeps } from '../use-cases/__features__.use-cases';
 import type { Create__Feature__Input, List__Features__Query, Update__Feature__Input } from '../__features__.schemas';
 
-type ControllerContext = Context<AppEnv, string, any>;
+type ControllerContext = Context<
+  AppEnv,
+  string,
+  { out: { json: Create__Feature__Input | Update__Feature__Input; query: List__Features__Query; param: IdParam } }
+>;
 type IdParam = { id: string };
 
-const buildUseCases = (container: AppContainer, c: ControllerContext) =>
-  create__Feature__UseCases({
-    createRepo: container.create__Feature__Repository,
-    readModel: container.__featureCamel__ReadModel,
-    tx: container.tx,
-    eventBus: container.eventBus,
-    logger: c.get('logger'),
-    clock: container.clock,
-  });
+const buildUseCases = (deps: __Feature__UseCasesDeps, c: ControllerContext) =>
+  create__Feature__UseCases({ ...deps, logger: c.get('logger') ?? deps.logger });
 
 export const create__Feature__Controller =
-  (container: AppContainer) =>
+  (deps: __Feature__UseCasesDeps) =>
   async (c: ControllerContext) => {
     const body = c.req.valid('json') as Create__Feature__Input;
-    const result = await buildUseCases(container, c).create({
+    const result = await buildUseCases(deps, c).create({
       ...body,
-      actorId: c.get('auth')?.userId ?? null,
+      actorId: c.get('auth')!.userId,
     });
 
     return toHttpResponse(c, result, 201);
   };
 
 export const update__Feature__Controller =
-  (container: AppContainer) =>
+  (deps: __Feature__UseCasesDeps) =>
   async (c: ControllerContext) => {
     const { id } = c.req.valid('param') as IdParam;
     const body = c.req.valid('json') as Update__Feature__Input;
-    const result = await buildUseCases(container, c).update({
+    const result = await buildUseCases(deps, c).update({
       id,
       ...body,
-      actorId: c.get('auth')?.userId ?? null,
+      actorId: c.get('auth')!.userId,
     });
 
     return toHttpResponse(c, result, 200);
   };
 
 export const get__Feature__Controller =
-  (container: AppContainer) =>
+  (deps: __Feature__UseCasesDeps) =>
   async (c: ControllerContext) => {
     const { id } = c.req.valid('param') as IdParam;
-    const result = await buildUseCases(container, c).getById({
+    const result = await buildUseCases(deps, c).getById({
       id,
-      actorId: c.get('auth')?.userId ?? null,
+      actorId: c.get('auth')!.userId,
     });
 
     return toHttpResponse(c, result, 200);
   };
 
 export const list__Features__Controller =
-  (container: AppContainer) =>
+  (deps: __Feature__UseCasesDeps) =>
   async (c: ControllerContext) => {
     const query = c.req.valid('query') as List__Features__Query;
-    const result = await buildUseCases(container, c).list({
+    const result = await buildUseCases(deps, c).list({
       ...query,
-      actorId: c.get('auth')?.userId ?? null,
+      actorId: c.get('auth')!.userId,
     });
 
     return toHttpResponse(c, result, 200);
