@@ -1,17 +1,15 @@
-# Repositories
+# Repositories (Excepción)
 
-Los repositories son fronteras de persistencia de una feature. No son una
-abstracción universal de SQL.
+Los repositories no forman parte del layout default. Commands y queries usan
+Drizzle directo con deps explícitas. Extraer un repository es una excepción para
+una frontera de persistencia compleja o reutilizada; no una abstracción universal
+de SQL.
 
-## Ubicación
+## Cuándo Extraerlo
 
-```txt
-features/projects/repository/
-  project.repository.ts
-  drizzle-project.repository.ts
-  project.mapper.ts
-  project-read-model.ts
-```
+Una vez justificado, mantenerlo local a la feature, por ejemplo
+`features/projects/project.repository.ts`, junto con el command que lo necesita.
+No crear `repository/` por default.
 
 ## Contrato
 
@@ -61,7 +59,9 @@ export class DrizzleProjectRepository implements ProjectRepository {
 
 ## Mappers
 
-El mapper traduce entre persistencia y entidad/modelo local:
+El mapping pertenece inicialmente a la operación que posee el DTO. Extraerlo cerca
+del repository solo si el mismo mapping de write-side se reutiliza y la complejidad
+lo justifica:
 
 ```ts
 export const ProjectMapper = {
@@ -106,8 +106,8 @@ No usar repository de write-side cuando:
 - se calculan stats
 - se devuelve un DTO read-only
 
-Para esos casos, crear un read model en `repository/` o usar Drizzle directo desde
-la query si la consulta es chica.
+Para esos casos, usar Drizzle directo desde la query. No crear un read model o
+repository solo para ordenar carpetas.
 
 ## Transacciones
 
@@ -127,4 +127,5 @@ await tx.run(async (db) => {
 - repo que retorna DTOs públicos
 - repo que importa Hono/logger/auth
 - repo que contiene reglas de negocio
-- repo compartido entre features sin ownership claro
+- repository compartido entre features sin ownership claro
+- extraer un repository antes de que exista complejidad o reutilización concreta

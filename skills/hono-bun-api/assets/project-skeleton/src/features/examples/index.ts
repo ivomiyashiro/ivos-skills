@@ -1,2 +1,2 @@
-export { buildExamplesRoutes } from './routes/examples.routes';
+export { buildExamplesRoutes } from './examples.routes';
 export type { ExampleId } from './examples.types';

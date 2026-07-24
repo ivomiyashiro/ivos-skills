@@ -1,57 +1,39 @@
-import { failure, success, type Result } from '@shared/result';
-import { forbidden, notFound, type AppError } from '@shared/errors/app-error';
-import type { Logger } from '@shared/observability/logger';
+import { success, type Result } from '@shared/result';
+import type { AppError } from '@shared/errors/app-error';
 import type { EventBus } from '@shared/events/event-bus';
-import type { Db } from '@shared/db/client';
 import type { TransactionManager } from '@shared/db/transaction';
-import type { Clock } from '@/container';
-import type { __Feature__Repository } from '../../repository/__feature__.repository';
-import { canUpdate__Feature__ } from '../../utils/__feature__.policies';
-import type { __Feature__Dto } from '../../__features__.schemas';
-import type { __Feature__Status } from '../../__features__.schemas';
+import { eq } from 'drizzle-orm';
+import { __features__ } from '@shared/db/schema';
+import type { Clock } from '@/di-container';
+import type { __Feature__Status, __Feature__Dto } from '../../__features__.schemas';
+import { __feature__Updated } from '../../__features__.events';
 
-export type Update__Feature__Command = {
-  id: string;
-  name?: string;
-  status?: __Feature__Status;
-  actorId: string | null;
-};
-
-export type Update__Feature__Deps = {
-  createRepo: (db: Db) => __Feature__Repository;
-  tx: TransactionManager;
-  eventBus: EventBus;
-  logger: Logger;
-  clock: Clock;
-};
+export type Update__Feature__Command = { id: string; name?: string; status?: __Feature__Status; actorId: string | null };
+export type Update__Feature__Deps = { tx: TransactionManager; eventBus: EventBus; clock: Clock };
 
 export const update__Feature__Command = async (
   deps: Update__Feature__Deps,
   command: Update__Feature__Command,
 ): Promise<Result<__Feature__Dto, AppError>> => {
-  const decision = canUpdate__Feature__(command.actorId);
-  if (!decision.allowed) return failure(forbidden(decision.reason));
+  const now = deps.clock.now();
+  const [row] = await deps.tx.run((db) => db
+    .update(__features__)
+    .set({
+      ...(command.name !== undefined && { name: command.name }),
+      ...(command.status !== undefined && { status: command.status }),
+      updatedAt: now,
+    })
+    .where(eq(__features__.id, command.id))
+    .returning());
 
-  const updated = await deps.tx.run(async (db) => {
-    const repo = deps.createRepo(db);
-    const entity = await repo.findById(command.id);
-    if (!entity) return null;
-
-    entity.update({ name: command.name, status: command.status, now: deps.clock.now() });
-    await repo.save(entity);
-    return entity;
-  });
-
-  if (!updated) return failure(notFound('__Feature__', command.id));
-
-  deps.eventBus.publishMany(updated.pullEvents());
-  deps.logger.info({ id: updated.id, actorId: command.actorId }, '__feature__ updated');
-
-  return success({
-    id: updated.id,
-    name: updated.name,
-    status: updated.status,
-    createdAt: updated.createdAt.toISOString(),
-    updatedAt: updated.updatedAt.toISOString(),
-  });
+  if (!row) throw new Error('__Feature__ not found');
+  const __feature__ = {
+    id: row.id,
+    name: row.name,
+    status: row.status,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+  deps.eventBus.publish(__feature__Updated(__feature__.id, now));
+  return success(__feature__);
 };

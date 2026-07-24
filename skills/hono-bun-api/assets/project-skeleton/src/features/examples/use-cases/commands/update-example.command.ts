@@ -1,14 +1,12 @@
+import { eq } from 'drizzle-orm';
 import { failure, success, type Result } from '@shared/result';
 import { forbidden, notFound, type AppError } from '@shared/errors/app-error';
-import type { Logger } from '@shared/observability/logger';
 import type { EventBus } from '@shared/events/event-bus';
-import type { Clock } from '@/di-container';
-import type { Db } from '@shared/db/client';
+import { examples } from '@shared/db/schema';
 import type { TransactionManager } from '@shared/db/transaction';
-import type { ExampleRepository } from '../../repository/example.repository';
-import { canUpdateExample } from '../../utils/example.policies';
-import type { ExampleDto } from '../../examples.schemas';
-import type { ExampleStatus } from '../../examples.schemas';
+import type { Clock } from '@/di-container';
+import type { ExampleDto, ExampleStatus } from '../../examples.schemas';
+import { exampleUpdated } from '../../examples.events';
 
 export type UpdateExampleCommand = {
   id: string;
@@ -19,47 +17,60 @@ export type UpdateExampleCommand = {
 };
 
 export type UpdateExampleDeps = {
-  createRepo: (db: Db) => ExampleRepository;
   tx: TransactionManager;
   eventBus: EventBus;
-  logger: Logger;
   clock: Clock;
 };
+
+type ExampleRow = {
+  id: string;
+  name: string;
+  status: ExampleDto['status'];
+  total: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+const toExampleDto = (row: ExampleRow): ExampleDto => ({
+  id: row.id,
+  name: row.name,
+  status: row.status,
+  total: Number(row.total),
+  createdAt: row.createdAt.toISOString(),
+  updatedAt: row.updatedAt.toISOString(),
+});
 
 export const updateExampleCommand = async (
   deps: UpdateExampleDeps,
   command: UpdateExampleCommand,
 ): Promise<Result<ExampleDto, AppError>> => {
-  const decision = canUpdateExample(command.actorId);
-  if (!decision.allowed) return failure(forbidden(decision.reason));
+  if (!command.actorId) return failure(forbidden('Authentication is required to update an example'));
 
-  const updated = await deps.tx.run(async (db) => {
-    const repo = deps.createRepo(db);
-    const example = await repo.findById(command.id);
-    if (!example) return null;
+  const now = deps.clock.now();
+  const example = await deps.tx.run(async (db) => {
+    const [row] = await db
+      .update(examples)
+      .set({
+        ...(command.name !== undefined && { name: command.name }),
+        ...(command.status !== undefined && { status: command.status }),
+        ...(command.total !== undefined && { total: String(command.total) }),
+        updatedAt: now,
+      })
+      .where(eq(examples.id, command.id))
+      .returning({
+        id: examples.id,
+        name: examples.name,
+        status: examples.status,
+        total: examples.total,
+        createdAt: examples.createdAt,
+        updatedAt: examples.updatedAt,
+      });
 
-    example.update({
-      name: command.name,
-      status: command.status,
-      total: command.total,
-      now: deps.clock.now(),
-    });
-
-    await repo.save(example);
-    return example;
+    return row ? toExampleDto(row) : null;
   });
 
-  if (!updated) return failure(notFound('Example', command.id));
+  if (!example) return failure(notFound('Example', command.id));
 
-  deps.eventBus.publishMany(updated.pullEvents());
-  deps.logger.info({ id: updated.id, actorId: command.actorId }, 'example updated');
-
-  return success({
-    id: updated.id,
-    name: updated.name,
-    status: updated.status,
-    total: updated.total,
-    createdAt: updated.createdAt.toISOString(),
-    updatedAt: updated.updatedAt.toISOString(),
-  });
+  deps.eventBus.publish(exampleUpdated(example.id, now));
+  return success(example);
 };

@@ -9,9 +9,6 @@ modelos de write-side salvo que haya una razón excepcional.
 features/projects/use-cases/queries/
   get-project-dashboard.query.ts
   list-projects.query.ts
-
-features/projects/repository/
-  project-read-model.ts
 ```
 
 ## Forma Recomendada
@@ -24,7 +21,7 @@ export type GetProjectDashboardQuery = {
 };
 
 export type GetProjectDashboardDeps = {
-  readModel: ProjectReadModel;
+  db: Db;
   permissions: PermissionService;
 };
 
@@ -40,40 +37,31 @@ export const getProjectDashboardQuery = async (
 
   if (!canRead) return failure(forbidden('project access denied'));
 
-  const dashboard = await deps.readModel.getDashboard(query);
+  const rows = await deps.db
+    .select({
+      projectId: projects.id,
+      projectName: projects.name,
+      tasksCount: sql<number>`count(${tasks.id})`,
+    })
+    .from(projects)
+    .leftJoin(tasks, eq(tasks.projectId, projects.id))
+    .where(and(eq(projects.organizationId, query.organizationId), eq(projects.id, query.projectId)))
+    .groupBy(projects.id)
+    .limit(1);
+  const dashboard = rows[0] ?? null;
   if (!dashboard) return failure(notFound('Project', query.projectId));
 
   return success(dashboard);
 };
 ```
 
-## Read Model Con Drizzle
+## Drizzle Directo
 
 ```ts
-export class ProjectReadModel {
-  constructor(private readonly db: Db) {}
-
-  async getDashboard(query: GetProjectDashboardQuery) {
-    const rows = await this.db
-      .select({
-        projectId: projects.id,
-        projectName: projects.name,
-        tasksCount: sql<number>`count(${tasks.id})`,
-      })
-      .from(projects)
-      .leftJoin(tasks, eq(tasks.projectId, projects.id))
-      .where(
-        and(
-          eq(projects.organizationId, query.organizationId),
-          eq(projects.id, query.projectId),
-        ),
-      )
-      .groupBy(projects.id)
-      .limit(1);
-
-    return rows[0] ?? null;
-  }
-}
+const rows = await deps.db
+  .select({ projectId: projects.id, projectName: projects.name })
+  .from(projects)
+  .where(eq(projects.id, query.projectId));
 ```
 
 ## Reglas
@@ -84,6 +72,8 @@ export class ProjectReadModel {
 - Filtrar siempre por tenant/organization cuando aplique.
 - Usar raw SQL/CTE/window functions cuando Drizzle builder queda forzado.
 - Mantener queries read-only: nada de insert/update/delete.
+- Mantener el mapping row-a-DTO dentro de la query que posee el DTO.
+- Si un command reutiliza una lectura, exportarla desde esta carpeta; no moverla ni duplicarla en `use-cases/commands/`.
 
 ## Cursor Pagination
 
@@ -110,7 +100,7 @@ const rows = await db
 
 ## Anti-Patrones
 
-- Query llamando `projectRepo.findById()` para responder un dashboard/listado.
+- Query usando un repository o read model por costumbre para responder un dashboard/listado.
 - Cargar entidad completa y mapearla en memoria.
 - Reutilizar DTO de DB como contrato público.
 - Offset pagination en tablas grandes.

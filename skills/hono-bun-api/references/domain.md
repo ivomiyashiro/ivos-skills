@@ -1,8 +1,8 @@
-# Utils Y Reglas De Negocio
+# Reglas De Negocio Locales
 
-En esta skill no hay carpeta `domain/` por default. Las reglas puras de negocio viven
-en `features/<feature>/utils/` y se mantienen portables y testeables sin Hono,
-Drizzle, Supabase ni Bun.
+En esta skill no hay carpeta `domain/` ni `utils/` por default. Las reglas puras de
+negocio empiezan como helpers privados dentro del command o query que las posee y se
+mantienen portables y testeables sin Hono, Drizzle, Supabase ni Bun.
 
 ## Contenido
 
@@ -12,7 +12,7 @@ Drizzle, Supabase ni Bun.
 - guards/assertions puros
 - errores de negocio locales
 - eventos locales
-- mappers sin IO
+- mapping sin IO cuando pertenece a la operación
 
 ## Entity
 
@@ -55,8 +55,8 @@ export const canCreateProject = (org: Organization, actor: Member, plan: Plan) =
 
 ## Anti-Patrones
 
-- utils importando Drizzle/Hono/Supabase
+- helpers locales importando Drizzle/Hono/Supabase
 - entidades con métodos async que hacen I/O
-- reglas duplicadas en controllers
-- lógica de negocio escondida en repositories
+- reglas duplicadas en routes
+- lógica de negocio escondida en repositories extraídos
 - DDD pesado para CRUD sin reglas reales

@@ -39,5 +39,5 @@ await tx.run(async (db) => {
 
 - transaccion abierta mientras se llama a email/Stripe/webhook
 - publicar eventos antes del commit
-- esconder transacciones dentro de controllers
+- esconder transacciones dentro de routes
 - usar transaccion para read-only queries simples

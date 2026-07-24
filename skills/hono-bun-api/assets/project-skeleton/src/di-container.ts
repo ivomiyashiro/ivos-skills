@@ -4,8 +4,6 @@ import { buildDb } from '@shared/db/client';
 import { createTransactionManager } from '@shared/db/transaction';
 import { createEventBus } from '@shared/events/event-bus';
 import { baseLogger } from '@shared/observability/logger';
-import { DrizzleExampleRepository } from '@features/examples/repository/drizzle-example.repository';
-import { ExampleReadModel } from '@features/examples/repository/example-read-model';
 
 export type Clock = { now: () => Date };
 export const systemClock: Clock = { now: () => new Date() };
@@ -20,9 +18,6 @@ export const createContainer = () => {
   const tx = createTransactionManager(appDb);
   const eventBus = createEventBus();
 
-  const exampleRepo = new DrizzleExampleRepository(appDb);
-  const exampleReadModel = new ExampleReadModel(appDb);
-
   return {
     db: appDb,
     closeDb: close,
@@ -30,9 +25,6 @@ export const createContainer = () => {
     tx,
     eventBus,
     clock: systemClock,
-    exampleRepo,
-    createExampleRepository: (txDb: Db) => new DrizzleExampleRepository(txDb),
-    exampleReadModel,
   };
 };
 

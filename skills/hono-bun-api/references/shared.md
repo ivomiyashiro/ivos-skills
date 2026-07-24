@@ -19,7 +19,7 @@ que no pertenece a una feature concreta.
 
 - reglas de negocio de una feature
 - mappers de una feature
-- repositories
+- repositories extraídos por excepción
 - DTOs específicos
 - constantes locales como estados de `Project`
 - helpers compartidos "por si acaso"

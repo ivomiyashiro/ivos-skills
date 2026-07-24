@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * scaffold-feature.ts — genera una feature con controller/routes/repository/utils/use-cases.
+ * scaffold-feature.ts — generates a flat feature with routes, operations, and events.
  *
  * Uso:
  *   bun run scripts/scaffold-feature.ts <feature-name> [--no-tests] [--plural=<plural>]
@@ -100,7 +100,7 @@ const applyPlaceholders = (input: string, p: Placeholders): string =>
 
 const shouldSkip = (relPath: string, args: Args): boolean => {
   if (relPath === 'README.md') return true;
-  if (args.noTests && relPath === 'routes/__features__.routes.test.ts.tmpl') return true;
+  if (args.noTests && (relPath.endsWith('.test.ts.tmpl') || relPath.startsWith('__tests__/'))) return true;
   return false;
 };
 
@@ -163,13 +163,13 @@ const main = async () => {
   for (const file of created) console.log(`  src/features/${placeholders.features}/${file}`);
 
   console.log('\nNext steps:');
-  console.log('  1. Definir tabla en src/shared/db/schema.ts y generar migracion.');
-  console.log(`  2. Registrar repo/read model en src/di-container.ts.`);
-  console.log(`  3. Mountear en src/app.ts:`);
+  console.log('  1. Define the table in src/shared/db/schema.ts and generate a migration.');
+  console.log('  2. Pass db, tx, eventBus, and clock from src/di-container.ts as required.');
+  console.log('  3. Mount the feature in src/app.ts:');
   console.log(
     `       app.route('/${placeholders.features}', build${placeholders.Features}Routes({ /* feature deps */ }));`,
   );
-  console.log('  4. Reemplazar TODOs de repository con queries Drizzle reales.');
+  console.log('  4. Replace operation TODOs with direct Drizzle queries.');
 };
 
 main().catch((err) => {

@@ -1,13 +1,11 @@
 import { success, type Result } from '@shared/result';
 import type { AppError } from '@shared/errors/app-error';
-import type { Logger } from '@shared/observability/logger';
 import type { EventBus } from '@shared/events/event-bus';
-import type { Clock } from '@/di-container';
-import type { Db } from '@shared/db/client';
+import { examples } from '@shared/db/schema';
 import type { TransactionManager } from '@shared/db/transaction';
-import type { ExampleRepository } from '../../repository/example.repository';
-import { Example } from '../../utils/example.entity';
+import type { Clock } from '@/di-container';
 import type { ExampleDto } from '../../examples.schemas';
+import { exampleCreated } from '../../examples.events';
 
 export type CreateExampleCommand = {
   name: string;
@@ -16,37 +14,56 @@ export type CreateExampleCommand = {
 };
 
 export type CreateExampleDeps = {
-  createRepo: (db: Db) => ExampleRepository;
   tx: TransactionManager;
   eventBus: EventBus;
-  logger: Logger;
   clock: Clock;
 };
+
+type ExampleRow = {
+  id: string;
+  name: string;
+  status: ExampleDto['status'];
+  total: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export const toExampleDto = (row: ExampleRow): ExampleDto => ({
+  id: row.id,
+  name: row.name,
+  status: row.status,
+  total: Number(row.total),
+  createdAt: row.createdAt.toISOString(),
+  updatedAt: row.updatedAt.toISOString(),
+});
 
 export const createExampleCommand = async (
   deps: CreateExampleDeps,
   command: CreateExampleCommand,
 ): Promise<Result<ExampleDto, AppError>> => {
   const now = deps.clock.now();
-  const example = Example.create({
-    name: command.name,
-    total: command.total ?? 0,
-    now,
+  const example = await deps.tx.run(async (db) => {
+    const [row] = await db
+      .insert(examples)
+      .values({
+        name: command.name,
+        total: String(command.total ?? 0),
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning({
+        id: examples.id,
+        name: examples.name,
+        status: examples.status,
+        total: examples.total,
+        createdAt: examples.createdAt,
+        updatedAt: examples.updatedAt,
+      });
+
+    if (!row) throw new Error('Example insert did not return a row');
+    return toExampleDto(row);
   });
 
-  await deps.tx.run(async (db) => {
-    await deps.createRepo(db).save(example);
-  });
-
-  deps.eventBus.publishMany(example.pullEvents());
-  deps.logger.info({ id: example.id, actorId: command.actorId }, 'example created');
-
-  return success({
-    id: example.id,
-    name: example.name,
-    status: example.status,
-    total: example.total,
-    createdAt: example.createdAt.toISOString(),
-    updatedAt: example.updatedAt.toISOString(),
-  });
+  deps.eventBus.publish(exampleCreated(example.id, now));
+  return success(example);
 };

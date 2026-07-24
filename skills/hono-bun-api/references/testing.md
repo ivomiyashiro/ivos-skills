@@ -4,46 +4,20 @@
 
 - **bun:test** — built-in, zero config, Jest-compatible API.
 - **app.request()** — método de Hono para tests in-memory.
-- **pglite** o **testcontainers** para DB efímera en integration tests.
+- **Docker Compose Postgres** para integration tests de HTTP y DB.
 
-## Unidad: use cases con deps fake
+## Unidad: Solo Lógica Pura
 
-Los use cases son funciones puras async. Mockear es construir el record `deps`:
+Testear solo parsers, cálculos y helpers puros junto a la operación que
+los posee. Commands y queries con IO se cubren con integration contra Postgres real.
 
 ```ts
-import { describe, expect, mock, test } from 'bun:test';
-import { createExampleCommand } from './use-cases/commands/create-example.command';
+import { describe, expect, test } from 'bun:test';
+import { normalizeExampleName } from './create-example.command';
 
-describe('createExampleCommand', () => {
-  test('persiste, emite evento y retorna DTO', async () => {
-    const repo = {
-      findById: mock(async () => null),
-      save: mock(async () => {}),
-      delete: mock(async () => {}),
-    };
-    const eventBus = {
-      publish: mock(() => {}),
-      publishMany: mock(() => {}),
-      on: mock(() => {}),
-      off: mock(() => {}),
-    };
-    const tx = { run: (fn: (db: unknown) => unknown) => fn({}) };
-    const clock = { now: () => new Date('2026-05-12T00:00:00Z') };
-
-    const result = await createExampleCommand(
-      {
-        createRepo: () => repo,
-        tx,
-        eventBus,
-        logger: silentLogger,
-        clock,
-      },
-      { name: 'test', actorId: 'u1' },
-    );
-
-    expect(result.ok).toBe(true);
-    expect(repo.save).toHaveBeenCalledTimes(1);
-    expect(eventBus.publishMany).toHaveBeenCalledTimes(1);
+describe('normalizeExampleName', () => {
+  test('trims and collapses internal whitespace', () => {
+    expect(normalizeExampleName('  example   name  ')).toBe('example name');
   });
 });
 ```
@@ -71,32 +45,23 @@ describe('POST /examples', () => {
 });
 ```
 
-## DB Efímera: pglite
+## Postgres Real: Docker Compose
 
-```ts
-import { PGlite } from '@electric-sql/pglite';
-import { drizzle } from 'drizzle-orm/pglite';
-import { sql } from 'drizzle-orm';
-import * as schema from '@shared/db/schema';
-
-export const buildTestDb = async () => {
-  const client = new PGlite();
-  const db = drizzle(client, { schema });
-
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS examples (...);
-  `);
-
-  return { db, close: () => client.close() };
-};
+```bash
+docker compose -f docker-compose.test.yml up -d --wait
+bun run db:migrate
+bun run db:seed
+bun run test:integration
+docker compose -f docker-compose.test.yml down -v
 ```
 
-pglite corre in-process y no necesita Docker. Para features avanzadas de Postgres
-que no cubra pglite, usar testcontainers.
+Configurar `bunfig.toml` para preload de las variables de test antes de cargar la
+configuración de la app. La base se prepara con las migraciones y seed reales.
 
 ## Tests Por Feature
 
-Tests viven al lado del código:
+Los tests puros viven junto al código. Todos los tests HTTP y DB viven en
+`features/<feature>/__tests__/`:
 
 ```txt
 features/quotes/
@@ -106,13 +71,12 @@ features/quotes/
       create-quote.command.test.ts
     queries/
       list-quotes.query.ts
-      list-quotes.query.test.ts
-  routes/
-    quotes.routes.ts
-    quotes.routes.test.ts
+  __tests__/
+    quotes.integration.ts
 ```
 
-Esto mantiene toda la feature en una carpeta, con responsabilidades internas claras.
+No mockear database ni Supabase en estos tests. Ejercitar la app con `app.request()`
+y el composition root real contra Postgres.
 
 ## Cobertura
 
@@ -131,10 +95,8 @@ await createExampleCommand({ ...deps, clock: fixedClock }, input);
 
 Para timers reales, usar fake timers de `bun:test`.
 
-## Mocks vs Fakes
+## Límites De Mocks
 
-Preferir fake records explícitos sobre mock global:
-
-- ✅ `createRepo: () => fakeRepo`
-- ✅ `readModel: fakeReadModel`
-- ❌ `mock.module('@shared/db/client')` para mockear DB globalmente
+- No mockear database ni Supabase en integration HTTP/DB.
+- Usar doubles solo cuando un helper puro necesita una dependencia externa aislada.
+- No usar `mock.module('@shared/db/client')` como default.

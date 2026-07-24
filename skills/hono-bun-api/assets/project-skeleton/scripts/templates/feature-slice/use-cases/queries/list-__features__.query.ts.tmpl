@@ -1,21 +1,30 @@
 import { success, type Result } from '@shared/result';
 import type { AppError } from '@shared/errors/app-error';
-import type { __Feature__ReadModel } from '../../repository/__feature__-read-model';
-import type { List__Features__Response } from '../../__features__.schemas';
-import type { List__Features__Query } from '../../__features__.schemas';
+import type { Db } from '@shared/db/client';
+import { and, asc, eq, gt } from 'drizzle-orm';
+import { __features__ } from '@shared/db/schema';
+import type { List__Features__Query, List__Features__Response } from '../../__features__.schemas';
 
-export type List__Features__QueryRequest = List__Features__Query & {
-  actorId: string | null;
-};
-
-export type List__Features__Deps = {
-  readModel: __Feature__ReadModel;
-};
+export type List__Features__QueryRequest = List__Features__Query & { actorId: string | null };
+export type List__Features__Deps = { db: Db };
 
 export const list__Features__Query = async (
   deps: List__Features__Deps,
   query: List__Features__QueryRequest,
 ): Promise<Result<List__Features__Response, AppError>> => {
-  void query.actorId;
-  return success(await deps.readModel.list(query));
+  const rows = await deps.db
+    .select()
+    .from(__features__)
+    .where(and(query.status ? eq(__features__.status, query.status) : undefined, query.cursor ? gt(__features__.id, query.cursor) : undefined))
+    .orderBy(asc(__features__.id))
+    .limit(query.limit + 1);
+  const hasMore = rows.length > query.limit;
+  const items = (hasMore ? rows.slice(0, query.limit) : rows).map((row) => ({
+    id: row.id,
+    name: row.name,
+    status: row.status,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  }));
+  return success({ items, nextCursor: hasMore ? items.at(-1)?.id ?? null : null });
 };

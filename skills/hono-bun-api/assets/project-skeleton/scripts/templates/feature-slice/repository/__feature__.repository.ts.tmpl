@@ -1,7 +1,0 @@
-import type { __Feature__ } from '../utils/__feature__.entity';
-
-export interface __Feature__Repository {
-  findById(id: string): Promise<__Feature__ | null>;
-  save(entity: __Feature__): Promise<void>;
-  delete(id: string): Promise<void>;
-}

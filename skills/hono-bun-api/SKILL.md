@@ -1,14 +1,15 @@
 ---
 name: hono-bun-api
-description: Construir APIs TypeScript backend reales con Hono + Bun siguiendo features verticales, CQRS lite, controller/routes/repository/utils/use-cases, Drizzle sobre Postgres/Supabase, Supabase Auth/Storage/RLS como infraestructura, Zod/OpenAPI y testing con Bun. Usar SIEMPRE que el usuario mencione hono, bun, "crear api typescript", endpoints, rutas, controller, command, query, use case, repository TS, Drizzle, Supabase, zod-openapi, OpenAPIHono, scaffold de proyecto Bun, modular monolith, backend architecture, o pida estructurar/scaffoldear un proyecto TS server-side. NO usar para .NET, MediatR ni EF Core.
+description: Use when creating or structuring TypeScript APIs with Hono and Bun, REST endpoints, commands/queries, Drizzle, Postgres, Supabase Auth, Zod, OpenAPI, explicit DI, CQRS lite, HTTP tests, or backend scaffolds. Excludes .NET, MediatR, and EF Core.
 ---
 
 # Skill: Hono + Bun API
 
-API opinada en TypeScript con **features verticales + CQRS lite**. Cada feature
-contiene su HTTP adapter, casos de uso, persistencia y helpers locales. Hono queda
-fino, Drizzle habla con Postgres, Supabase se trata como infraestructura y las
-lecturas se optimizan sin cargar modelos de escritura cuando no aportan valor.
+API opinada en TypeScript con **features verticales planas + CQRS lite**. Cada
+feature contiene un único adapter HTTP, sus operaciones y sus contratos locales.
+Hono queda fino, Drizzle habla directamente con Postgres por default, Supabase se
+trata como infraestructura y las lecturas se optimizan sin cargar modelos de
+escritura cuando no aportan valor.
 
 > **Cómo usar este skill:** este archivo es la guía canónica. Para detalle profundo,
 > cargar solo la referencia relevante en `references/`. Para arrancar de cero,
@@ -28,7 +29,7 @@ lecturas se optimizan sin cargar modelos de escritura cuando no aportan valor.
 | DB | **Drizzle ORM + postgres.js** | Acceso tipado a Supabase Postgres o Postgres propio, migraciones versionadas. |
 | Logger | **Pino 9** | Logs JSON con `requestId`. |
 | Métricas | **prom-client 15** | `/metrics` Prometheus. |
-| Testing | **bun:test** + pglite/testcontainers | Unit de utils/use-cases e integration contra app/DB. |
+| Testing | **bun:test** + Docker Compose Postgres | Tests puros co-localizados e integration HTTP/DB contra Postgres real. |
 | Tipos | **TypeScript strict** | Sin `any` estructural ni singletons globales. |
 
 ---
@@ -37,14 +38,14 @@ lecturas se optimizan sin cargar modelos de escritura cuando no aportan valor.
 
 1. **Features verticales.** Carpetas principales son `src/features/<feature>/`.
 2. **`shared` es infraestructura compartida.** Config, DB, errores, middleware, auth, observabilidad y tipos realmente globales.
-3. **Una feature no importa internals de otra feature.** Si necesita leer datos, usar SQL/read model; si necesita reaccionar, usar eventos.
+3. **Una feature no importa internals de otra feature.** Si necesita leer datos, usar una query SQL/Drizzle propia; si necesita reaccionar, usar eventos.
 4. **CQRS lite.** Commands modifican estado; queries leen DTOs optimizados. Mismo DB, sin event sourcing por default.
-5. **Controllers son adaptadores HTTP.** Validan/leen input, toman `auth/logger/requestId`, llaman un use case y mapean respuesta.
-6. **Use cases no importan Hono.** Deben poder ejecutarse desde HTTP, jobs, scripts o tests.
-7. **Repositories no son abstracción universal de DB.** Usarlos para writes/agregados y read models locales; dashboards/search/stats pueden consultar con Drizzle directo desde queries.
-8. **Utils no es cajón desastre.** Solo helpers puros locales de la feature: policies, mappers puros, entidades livianas, formatters, guards.
+5. **`<feature>.routes.ts` es el adapter HTTP.** Valida/lee input, toma `auth/logger/requestId`, llama una operación y mapea la respuesta; no contiene reglas ni SQL.
+6. **Commands y queries no importan Hono.** Deben poder ejecutarse desde HTTP, jobs, scripts o tests, con deps explícitas por operación.
+7. **Drizzle directo es el default.** Extraer un helper local o repository solo ante complejidad concreta o reutilización comprobada; nunca por ritual.
+8. **El mapping pertenece a la operación dueña.** No crear una capa o carpeta de mappers por default.
 9. **Supabase es infraestructura.** Auth, Storage, Realtime y RLS son adapters/capabilities; no definen la arquitectura.
-10. **Zod en el borde HTTP.** Zod valida shape de entrada; los use cases/utils validan reglas de negocio.
+10. **Zod en el borde HTTP.** Zod valida shape de entrada; commands, queries y helpers locales validan reglas de negocio.
 11. **Transacciones explícitas para writes críticas.** Si una operación toca múltiples tablas o publica side effects durables, envolverla en `TransactionManager`.
 12. **Outbox para side effects durables.** Emails, webhooks, notificaciones y sync externos no deben romper el request principal.
 13. **Performance es parte del endpoint.** Cada query debe tener DTO proyectado, límite, paginación estable e índice compatible.
@@ -80,39 +81,33 @@ src/
     result.ts
 
   features/
-    examples/
-      controller/
-        examples.controller.ts
-      routes/
-        examples.routes.ts
-        examples.routes.test.ts
-      repository/
-        example.repository.ts
-        drizzle-example.repository.ts
-        example-read-model.ts
-        example.mapper.ts
-      utils/
-        example.entity.ts
-        example.policies.ts
-        example.events.ts
-      use-cases/
-        commands/
-          create-example.command.ts
-          update-example.command.ts
-        queries/
-          get-example-by-id.query.ts
-          list-examples.query.ts
-      examples.constants.ts
-      examples.schemas.ts
-      examples.types.ts
-      index.ts
+      examples/
+        use-cases/
+          commands/
+            create-example.command.ts
+            update-example.command.ts
+          queries/
+            get-example-by-id.query.ts
+            list-examples.query.ts
+       __tests__/
+         examples.integration.ts
+       examples.constants.ts
+       examples.errors.ts
+       examples.events.ts
+       examples.routes.ts
+       examples.schemas.ts
+       examples.types.ts
+       index.ts
 
   jobs/
     workers/
 ```
 
-`features/<feature>/index.ts` debe exportar solo la API pública de la feature,
-por ejemplo `buildExamplesRoutes` y tipos que otros bordes realmente necesiten.
+La raíz de una feature contiene `<feature>.routes.ts`, `<feature>.constants.ts`,
+`<feature>.events.ts`, schemas, types, errors, `use-cases/commands/`, `use-cases/queries/` y
+`__tests__/`. Puede incluir `index.ts` para exportar solo su API pública, por
+ejemplo `buildExamplesRoutes` y tipos que otros bordes realmente necesiten. No
+prescribir `controller/`, `routes/`, `repository/` ni `utils/`.
 
 ---
 
@@ -136,17 +131,12 @@ por ejemplo `buildExamplesRoutes` y tipos que otros bordes realmente necesiten.
 - Usar `shared/config/env.ts` para env/config parseada.
 - Evitar `shared/constants.ts`; suele convertirse en acoplamiento silencioso.
 
-**Utils**
+**Helpers y repositories (excepciones)**
 
-- Usar `utils/` solo para código puro local: policies, entidades livianas, guards, mappers sin DB, helpers de formato.
-- Si un helper se comparte entre dos features, copiarlo primero si es chico; mover a `shared/utils` recién cuando sea una abstracción real.
-- No poner SQL, Hono context, clients externos ni side effects en `utils/`.
-
-**Repository**
-
-- `repository/` contiene persistencia de la feature: interface de write repository, implementación Drizzle, mapper y read model.
-- Para writes con invariantes, usar repository + transaction.
-- Para reads optimizadas, usar query use case + read model/Drizzle.
+- Mantener helpers privados en el archivo de la operación mientras sean exclusivos de ella.
+- Extraer un helper local solo si reduce complejidad concreta o se reutiliza dentro de la feature. Debe conservar límites claros: sin Hono, IO oculto ni estado global.
+- Extraer un repository solo si un command tiene una frontera de persistencia compleja, invariantes de agregado o lógica de acceso reutilizada. `references/repositories.md` documenta esta excepción, no una estructura default.
+- Los mappers viven en el command/query que posee el DTO. Extraerlos solo con la misma evidencia de complejidad o reutilización.
 
 ---
 
@@ -166,16 +156,10 @@ Cada archivo de command/query contiene:
 - una función principal exportada
 - helpers privados chicos si son exclusivos de ese caso
 
-No separar `handler` de `command/query` por ritual. Si el archivo crece demasiado,
-extraer helpers privados a `utils/` o repos/read models a `repository/`.
-
-Para `controller/`, empezar con un archivo por feature (`examples.controller.ts`)
-con varios handlers HTTP. Dividir en `create-example.controller.ts` solo cuando el
-archivo sea difícil de navegar o tenga dependencias muy distintas.
-
-Para `utils/`, agrupar por tema (`date.utils.ts`, `example.policies.ts`,
-`example.entity.ts`). No crear un archivo por función salvo que sea una función
-central, compleja o con tests propios.
+No separar handler, mapper, helper o repository por ritual. Si el archivo crece,
+extraer primero un helper privado; promoverlo a archivo local solo ante complejidad
+concreta o reutilización. Un query que un command necesita sigue en `use-cases/queries/` y se
+importa desde allí; no duplicar ni mover reads a commands.
 
 ---
 
@@ -183,20 +167,19 @@ central, compleja o con tests propios.
 
 ```txt
 HTTP / Hono route
-  -> controller
-  -> command/query use case
-  -> repository/read model/utils
+  -> <feature>.routes.ts
+  -> command/query
   -> Drizzle / Supabase / external adapter
 ```
 
-Controllers hacen:
+`<feature>.routes.ts` hace:
 
 - leer input validado por Hono/Zod
 - leer `auth`, `logger`, `requestId` del context
 - llamar command/query
 - mapear `Result` a HTTP
 
-Controllers no hacen:
+`<feature>.routes.ts` no hace:
 
 - reglas de negocio
 - SQL
@@ -212,20 +195,21 @@ Controllers no hacen:
 - Modifican estado.
 - Orquestan authorization, reglas de negocio, transacciones, repositorios y eventos.
 - Retornan output mínimo o DTO de confirmación.
-- Usan repositories cuando hay invariantes que proteger.
+- Usan Drizzle directo por default; extraen un repository solo con complejidad o reutilización concreta.
 
 **Queries**
 
 - Leen datos.
 - Devuelven DTOs diseñados para el endpoint.
-- Pueden usar read models, Drizzle directo, joins, CTEs o raw SQL.
-- No mutan estado y no usan repositories de write-side salvo que el caso sea trivial.
+- Usan Drizzle directo, joins, CTEs o raw SQL según la consulta.
+- No mutan estado. Si un command necesita un read reutilizable, lo importa desde `use-cases/queries/`.
 
 Regla práctica:
 
 ```txt
-Si necesito proteger invariantes de negocio -> command + utils/entity/policy + repository.
-Si necesito leer datos eficiente para UI/API -> query + read model/Drizzle.
+Si necesito modificar estado -> command + deps explícitas + Drizzle/tx.
+Si necesito leer datos eficiente para UI/API -> query + Drizzle directo.
+Si necesito extraer un helper/repository -> demostrar complejidad o reutilización concreta.
 ```
 
 ---
@@ -235,7 +219,7 @@ Si necesito leer datos eficiente para UI/API -> query + read model/Drizzle.
 Antes de cerrar un endpoint:
 
 - proyectar DTOs explícitos; no usar `select *`
-- evitar N+1 con joins, batch queries o read models
+- evitar N+1 con joins, batch queries o proyecciones directas
 - usar cursor pagination en listados grandes
 - definir `limit` máximo y response payload chico
 - filtrar tenant/organization en SQL, no en memoria
@@ -255,8 +239,7 @@ index:
 ```
 
 Si una feature necesita otra, importar solo su API pública desde
-`@features/<feature>`. No importar `@features/<feature>/repository`,
-`@features/<feature>/utils` ni subpaths internos.
+`@features/<feature>`. No importar subpaths internos de otra feature.
 
 Detalles: `references/performance.md` y `references/pagination-and-indexes.md`.
 
@@ -322,8 +305,8 @@ bun run scripts/scaffold-feature.ts project
 bun run scaffold project
 ```
 
-El script genera `src/features/projects/` con controller, routes, repository,
-utils, use cases, schemas, constants, types e index público.
+El script genera `src/features/projects/` plano con routes, commands, queries,
+tests, schemas, constants, types, errors, events e index público.
 
 ---
 
@@ -337,7 +320,7 @@ Regla práctica:
 ```txt
 Función pura -> no DI.
 Use case con IO -> deps explícitas.
-Deps repetidas en varios controllers -> factory por feature.
+Deps repetidas entre operaciones -> pasar solo el subconjunto necesario a cada una.
 DI container library -> solo si hay lifetimes/grafo complejo real.
 ```
 
@@ -349,14 +332,10 @@ export function createContainer() {
   const tx = createTransactionManager(db);
   const eventBus = createEventBus();
 
-  const exampleReadModel = new ExampleReadModel(db);
-
   return {
     db,
     tx,
     eventBus,
-    exampleReadModel,
-    createExampleRepository: (txDb: Db) => new DrizzleExampleRepository(txDb),
   };
 }
 ```
@@ -366,22 +345,21 @@ las dependencias globales y pasa a cada feature un objeto literal con los valore
 que usa. Una feature no importa el tipo del root ni usa `Pick<AppDependencies, ...>`:
 
 ```ts
-type ExampleFeatureDeps = {
-  readModel: ExampleReadModel;
+type ExampleRoutesDeps = {
+  db: Db;
   tx: TransactionManager;
   eventBus: EventBus;
 };
 
-export const buildExampleRoutes = (deps: ExampleFeatureDeps) => {
-  const controller = createExampleController(deps);
-  // register routes with controller
+export const buildExampleRoutes = (deps: ExampleRoutesDeps) => {
+  // register thin route handlers that call operations with explicit deps
 };
 
 export const buildApp = (dependencies: AppDependencies) => {
   app.route(
     "/examples",
     buildExampleRoutes({
-      readModel: dependencies.exampleReadModel,
+      db: dependencies.db,
       tx: dependencies.tx,
       eventBus: dependencies.eventBus,
     }),
@@ -389,16 +367,12 @@ export const buildApp = (dependencies: AppDependencies) => {
 };
 ```
 
-Controllers reciben el mismo tipo local y agregan deps request-scoped como
-`logger` o `auth`. Los use cases reciben solo las deps de la operación. Si varios
-controllers repiten deps, crear una factory local:
+Las routes reciben un tipo local y agregan valores request-scoped como `logger` o
+`auth`. Cada operación recibe solo las deps que usa:
 
 ```ts
-export const createExampleUseCases = (deps: ExampleUseCasesDeps) => ({
-  create: (command: CreateExampleCommand) => createExampleCommand(deps, command),
-  update: (command: UpdateExampleCommand) => updateExampleCommand(deps, command),
-  list: (query: ListExamplesQuery) => listExamplesQuery({ readModel: deps.readModel }, query),
-});
+await createExampleCommand({ tx: deps.tx, eventBus: deps.eventBus }, command);
+await listExamplesQuery({ db: deps.db }, query);
 ```
 
 Ver `references/di.md`.
@@ -407,8 +381,8 @@ Ver `references/di.md`.
 
 ## 12. Errores
 
-Default del skeleton: `Result<T, AppError>` en use cases para errores esperados.
-Utils/policies pueden exponer errores tipados o decisiones; el use case los mapea a
+Default del skeleton: `Result<T, AppError>` en commands y queries para errores esperados.
+Los helpers locales puros pueden exponer errores tipados o decisiones; la operación los mapea a
 `AppError`.
 
 `throw` queda para bugs, fallas de infraestructura y config inválida. El middleware
@@ -423,31 +397,34 @@ consistente en toda la feature y mantener mapper HTTP central. No mezclar estilo
 
 Prioridad:
 
-- unit tests de `utils/` para policies, entidades e invariantes
-- unit tests de `use-cases/` con repos/adapters fake
-- integration tests de repositories/read models contra DB real
-- HTTP integration tests de Hono con `app.request()`
+- unit tests solo para lógica pura, co-localizados junto a la operación o contrato que la posee
+- HTTP y DB integration tests en `features/<feature>/__tests__/`
+- integration con `app.request()` y Postgres real iniciado por Docker Compose
+- preload de variables de test, migraciones reales y seed/preparación antes de los tests
 
-No testear solo endpoints. Las reglas valiosas viven en use cases y utils.
+No usar mocks de database ni Supabase en tests HTTP/DB. Los commands y queries con
+IO se validan mediante integration; las reglas puras se testean unitariamente.
 
 ---
 
 ## 14. Checklist Pre-PR
 
 - [ ] Input HTTP validado con Zod.
-- [ ] Controllers sin reglas de negocio ni SQL.
+- [ ] `<feature>.routes.ts` es el único adapter HTTP y no contiene reglas de negocio ni SQL.
 - [ ] Ninguna feature importa el tipo ni recibe el objeto del composition root.
-- [ ] Use cases no importan Hono.
-- [ ] Utils no importan Hono, Drizzle, Supabase ni Bun.
+- [ ] Commands y queries no importan Hono.
 - [ ] Constants/types/schemas viven en la feature salvo que sean globales reales.
+- [ ] Cada command/query recibe solo deps explícitas y usa Drizzle directo por default.
+- [ ] Cada command/query exporta `<verb><Noun>Command|Query`; los reads reutilizados permanecen en `use-cases/queries/`.
+- [ ] Mapping vive en la operación dueña; helpers/repositories solo existen por complejidad o reutilización concreta.
 - [ ] Commands usan transacción cuando hay múltiples writes o outbox.
 - [ ] Commands sensibles tienen idempotencia.
-- [ ] Queries usan read models/Drizzle y devuelven DTO específico.
+- [ ] Queries usan Drizzle y devuelven DTO específico.
 - [ ] Queries/listados tienen DTO proyectado, límite máximo e índice compatible.
 - [ ] No hay N+1 obvio ni filtrado tenant/organization en memoria.
 - [ ] `bun run check:boundaries` pasa.
-- [ ] No hay repositorios para dashboards/search/stats/reports por costumbre.
-- [ ] AuthN en middleware; AuthZ en use cases/utils.
+- [ ] No hay helpers o repositories extraídos por costumbre.
+- [ ] AuthN en middleware; AuthZ en commands/queries o helpers locales.
 - [ ] Multi-tenant queries filtran por `organizationId`/`tenantId` cuando aplique.
 - [ ] Listados grandes usan cursor pagination.
 - [ ] Side effects durables usan outbox/worker.
@@ -457,6 +434,8 @@ No testear solo endpoints. Las reglas valiosas viven en use cases y utils.
 - [ ] Métricas y logs cubren endpoints críticos, jobs, retries y outbox.
 - [ ] OpenAPI actualizado desde schemas.
 - [ ] Logs estructurados con `requestId`, sin tokens completos.
+- [ ] Tests puros están co-localizados y tests HTTP/DB viven en `feature/__tests__/`.
+- [ ] Tests HTTP/DB usan `app.request()`, Docker Compose Postgres, preload, migraciones y seed sin mocks de DB/Supabase.
 - [ ] `bun run typecheck` y tests relevantes pasan.
 
 ---
@@ -469,13 +448,13 @@ No testear solo endpoints. Las reglas valiosas viven en use cases y utils.
 | Estructura por feature | `references/features.md` |
 | Crear una feature paso a paso | `references/feature-walkthrough.md` |
 | Commands | `references/commands.md` |
-| Queries/read models | `references/queries.md` |
+| Queries y Drizzle directo | `references/queries.md` |
 | Performance por endpoint | `references/performance.md` |
 | Idempotencia | `references/idempotency.md` |
 | Rate limits/backpressure | `references/rate-limits-and-backpressure.md` |
 | Timeouts/retries | `references/timeouts-and-retries.md` |
 | Cache | `references/caching.md` |
-| Repositories | `references/repositories.md` |
+| Repositories (solo excepción) | `references/repositories.md` |
 | Transacciones | `references/transactions.md` |
 | Outbox | `references/outbox.md` |
 | Supabase | `references/supabase-infrastructure.md` |
@@ -495,7 +474,7 @@ No testear solo endpoints. Las reglas valiosas viven en use cases y utils.
 - Docs en español; identificadores, APIs públicas y mensajes técnicos en inglés.
 - Bun debe quedar en bordes: boot, server, scripts, tests y workers.
 - Preferir Drizzle como default. Kysely o Bun.sql son opciones si el repo ya lo pide.
-- Aplicar entidades/policies solo donde haya invariantes reales. Para CRUD simple,
-  mantener use cases livianos.
+- Aplicar entidades o helpers locales solo donde haya invariantes reales. Para CRUD simple,
+  mantener commands y queries livianos.
 - OpenAPI para consumidores externos; Hono RPC cuando frontend y backend TypeScript
   están bajo el mismo control.

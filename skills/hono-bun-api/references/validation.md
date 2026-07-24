@@ -183,7 +183,7 @@ type Input = z.input<typeof PositiveInt>;   // string | number
 type Output = z.infer<typeof PositiveInt>;  // number (= z.output)
 ```
 
-Para controllers y use cases, usar siempre `z.infer` (= output).
+Para routes y commands/queries, usar siempre `z.infer` (= output).
 
 ## Anti-patrones
 

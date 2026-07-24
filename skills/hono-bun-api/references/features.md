@@ -1,26 +1,12 @@
 # Features
 
-Una feature agrupa endpoints, casos de uso, persistencia y helpers locales de una
-area del producto. Es una vertical slice: todo lo que cambia junto debe vivir junto.
+Una feature agrupa endpoints, operaciones, contratos y tests de un area del
+producto. Es una vertical slice plana: todo lo que cambia junto debe vivir junto.
 
 ## Estructura
 
 ```txt
 features/projects/
-  controller/
-    projects.controller.ts
-  routes/
-    projects.routes.ts
-    projects.routes.test.ts
-  repository/
-    project.repository.ts
-    drizzle-project.repository.ts
-    project-read-model.ts
-    project.mapper.ts
-  utils/
-    project.entity.ts
-    project.policies.ts
-    project.events.ts
   use-cases/
     commands/
       create-project.command.ts
@@ -28,7 +14,12 @@ features/projects/
     queries/
       get-project-by-id.query.ts
       list-projects.query.ts
+  __tests__/
+    projects.integration.ts
   projects.constants.ts
+  projects.errors.ts
+  projects.events.ts
+  projects.routes.ts
   projects.schemas.ts
   projects.types.ts
   index.ts
@@ -37,12 +28,11 @@ features/projects/
 ## Naming
 
 - feature folder en plural: `projects`, `organizations`, `billing`
-- entidad/modelo liviano en singular: `project.entity.ts`
-- routes/controller en plural: `projects.routes.ts`, `projects.controller.ts`
+- routes en plural: `projects.routes.ts`
 - command: `create-project.command.ts` exporta `createProjectCommand`
 - query: `list-projects.query.ts` exporta `listProjectsQuery`
-- repository: `project.repository.ts` para contrato, `drizzle-project.repository.ts` para implementación
-- read model: `project-read-model.ts`
+- cada operación exporta `<verb><Noun>Command` o `<verb><Noun>Query`
+- un query reutilizado por un command permanece en `use-cases/queries/`
 
 ## Boundaries
 
@@ -55,12 +45,16 @@ a `shared` solo si es realmente transversal.
 El skeleton incluye `bun run check:boundaries` para detectar imports internos entre
 features y cualquier import desde `shared` hacia `features`.
 
-## Types, Constants, Utils
+## Contratos Y Extracciones
 
 - `projects.schemas.ts`: schemas HTTP y tipos inferidos desde Zod.
 - `projects.types.ts`: tipos propios que no salen de Zod.
+- `projects.errors.ts`: errores esperados propios de la feature.
+- `projects.events.ts`: contratos de eventos locales.
 - `projects.constants.ts`: estados, límites y defaults locales.
-- `utils/`: helpers puros locales, policies, entidades livianas, guards y mappers sin IO.
+- Commands y queries reciben deps explícitas y usan Drizzle directo por default.
+- El mapping de row a DTO vive en la operación dueña.
+- Extraer un helper local o repository solo ante complejidad concreta o reutilización dentro de la feature; no crear sus carpetas por default.
 - `shared/types` o `shared/utils`: solo cuando dos o más features lo necesitan de verdad.
 
 ## Cuándo Dividir Una Feature

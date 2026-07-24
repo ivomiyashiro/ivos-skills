@@ -1,10 +1,31 @@
 # Feature Walkthrough: Crear Una Feature Completa
 
-Esta guía usa `projects` como ejemplo. El objetivo es que la feature quede
-navegable: routes, controller, use cases, repository, utils, schemas, constants y
-types.
+Esta guía usa `projects` como ejemplo. La feature se mantiene plana y navegable:
+una route HTTP, commands, queries, contratos locales y tests de integración.
 
-## 1. Schemas HTTP
+## 1. Estructura
+
+```txt
+features/projects/
+  use-cases/
+    commands/
+      create-project.command.ts
+    queries/
+      list-projects.query.ts
+  __tests__/
+    projects.integration.ts
+  projects.constants.ts
+  projects.errors.ts
+  projects.events.ts
+  projects.routes.ts
+  projects.schemas.ts
+  projects.types.ts
+  index.ts
+```
+
+No crear `controller/`, `routes/`, `repository/` ni `utils/` por default.
+
+## 2. Schemas HTTP
 
 ```ts
 // features/projects/projects.schemas.ts
@@ -23,92 +44,10 @@ export const ProjectDto = z.object({
 });
 ```
 
-Zod valida shape del request. Las invariantes de negocio van en use cases/utils.
+Zod valida el shape del request. Las invariantes de negocio van en el command y en
+helpers puros privados de la operación cuando son necesarios.
 
-## 2. Utils
-
-```ts
-// features/projects/utils/project.entity.ts
-export class Project {
-  private constructor(private props: ProjectProps) {}
-
-  static create(input: CreateProjectProps) {
-    return new Project({
-      id: crypto.randomUUID(),
-      organizationId: input.organizationId,
-      name: input.name,
-      ownerId: input.ownerId,
-      status: 'active',
-      createdAt: input.now,
-      updatedAt: input.now,
-    });
-  }
-}
-```
-
-```ts
-// features/projects/utils/project.policies.ts
-export const canCreateProject = (actorId: string | null) =>
-  actorId ? { allowed: true as const } : { allowed: false as const, reason: 'auth required' };
-```
-
-Utils no importa Hono, Drizzle ni Supabase.
-
-## 3. Repository
-
-```ts
-// features/projects/repository/project.repository.ts
-export interface ProjectRepository {
-  findById(id: string): Promise<Project | null>;
-  save(project: Project): Promise<void>;
-  delete(id: string): Promise<void>;
-}
-```
-
-```ts
-// features/projects/repository/drizzle-project.repository.ts
-export class DrizzleProjectRepository implements ProjectRepository {
-  constructor(private readonly db: Db) {}
-
-  async findById(id: string) {
-    const row = await this.db.query.projects.findFirst({
-      where: eq(projects.id, id),
-    });
-
-    return row ? ProjectMapper.toEntity(row) : null;
-  }
-
-  async save(project: Project) {
-    const row = ProjectMapper.toPersistence(project);
-    await this.db.insert(projects).values(row).onConflictDoUpdate({
-      target: projects.id,
-      set: row,
-    });
-  }
-}
-```
-
-```ts
-// features/projects/repository/project-read-model.ts
-export class ProjectReadModel {
-  constructor(private readonly db: Db) {}
-
-  async listByOrganization(input: ListProjectsQuery) {
-    return this.db
-      .select({
-        id: projects.id,
-        name: projects.name,
-        createdAt: projects.createdAt,
-      })
-      .from(projects)
-      .where(eq(projects.organizationId, input.organizationId))
-      .orderBy(desc(projects.createdAt), desc(projects.id))
-      .limit(input.limit + 1);
-  }
-}
-```
-
-## 4. Commands
+## 3. Command Con Drizzle Directo
 
 ```ts
 // features/projects/use-cases/commands/create-project.command.ts
@@ -118,116 +57,131 @@ export type CreateProjectCommand = {
   ownerId: string;
 };
 
+export type CreateProjectDeps = {
+  tx: TransactionManager;
+  eventBus: EventBus;
+  clock: Clock;
+};
+
 export const createProjectCommand = async (
   deps: CreateProjectDeps,
   command: CreateProjectCommand,
 ): Promise<Result<{ id: string }, AppError>> => {
   return deps.tx.run(async (db) => {
-    const projectRepo = deps.createProjectRepo(db);
-    const decision = canCreateProject(command.ownerId);
-    if (!decision.allowed) return failure(forbidden(decision.reason));
+    const [project] = await db
+      .insert(projects)
+      .values({
+        organizationId: command.organizationId,
+        name: command.name,
+        ownerId: command.ownerId,
+        createdAt: deps.clock.now(),
+      })
+      .returning({ id: projects.id });
 
-    const project = Project.create({ ...command, now: deps.clock.now() });
-    await projectRepo.save(project);
-
-    return success({ id: project.id });
+    if (!project) throw new Error('Project insert did not return a row');
+    deps.eventBus.publish(projectCreated(project.id));
+    return success(project);
   });
 };
 ```
 
-## 5. Queries
+El command recibe solo las deps que utiliza. Abrir una transacción cuando hay varios
+writes, outbox o rollback atómico. Extraer un helper o repository solo si hay
+complejidad concreta o reutilización comprobada.
+
+## 4. Query Con Drizzle Directo
 
 ```ts
 // features/projects/use-cases/queries/list-projects.query.ts
+export type ListProjectsQuery = { organizationId: string; limit: number };
+export type ListProjectsDeps = { db: Db };
+
 export const listProjectsQuery = async (
-  deps: { readModel: ProjectReadModel },
-  query: ListProjectsQueryRequest,
-) => {
-  return success(await deps.readModel.listByOrganization(query));
+  deps: ListProjectsDeps,
+  query: ListProjectsQuery,
+): Promise<Result<ProjectDto[], AppError>> => {
+  const rows = await deps.db
+    .select({ id: projects.id, name: projects.name, createdAt: projects.createdAt })
+    .from(projects)
+    .where(eq(projects.organizationId, query.organizationId))
+    .orderBy(desc(projects.createdAt), desc(projects.id))
+    .limit(query.limit);
+
+  return success(rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    createdAt: row.createdAt.toISOString(),
+  })));
 };
 ```
 
-Queries devuelven DTOs/read models. No usar repositories de write-side para
-listados complejos.
+La query posee la proyección y el mapping a DTO. Si un command necesita esta lectura,
+la importa desde `use-cases/queries/`; no la duplica ni la mueve a `use-cases/commands/`.
 
-## 6. Controller
+## 5. Route HTTP Fina
 
 ```ts
-// features/projects/controller/projects.controller.ts
-type ProjectFeatureDeps = {
-  createProjectRepository: (db: Db) => ProjectRepository;
-  projectReadModel: ProjectReadModel;
+// features/projects/projects.routes.ts
+export type ProjectsRouteDeps = {
+  db: Db;
   tx: TransactionManager;
+  eventBus: EventBus;
   clock: Clock;
 };
 
-export const createProjectController =
-  (deps: ProjectFeatureDeps) =>
-  async (c: Context<AppEnv>) => {
-    const result = await createProjectCommand(
-      {
-        createProjectRepo: deps.createProjectRepository,
-        tx: deps.tx,
-        clock: deps.clock,
-        logger: c.get('logger'),
-      },
-      { ...c.req.valid('json'), ownerId: c.get('auth')!.userId },
-    );
+export const buildProjectsRoutes = (deps: ProjectsRouteDeps) => {
+  const routes = createApiRouter();
 
-    return toHttpResponse(c, result, 201);
-  };
-```
+  routes.openapi(createRoute({ method: 'post', path: '/', /* schemas */ }), async (c) =>
+    toHttpResponse(
+      c,
+      await createProjectCommand(
+        { tx: deps.tx, eventBus: deps.eventBus, clock: deps.clock },
+        { ...c.req.valid('json'), ownerId: c.get('auth')!.userId },
+      ),
+      201,
+    ),
+  );
 
-Controller adapta HTTP. No contiene reglas de negocio.
-
-## 7. Routes
-
-```ts
-// features/projects/routes/projects.routes.ts
-export const buildProjectsRoutes = (deps: ProjectFeatureDeps) => {
-  const r = createApiRouter();
-
-  r.openapi(createRoute({ method: 'post', path: '/', ... }), createProjectController(deps));
-  r.openapi(createRoute({ method: 'get', path: '/', ... }), listProjectsController(deps));
-
-  return r;
+  return routes;
 };
 ```
 
-## 8. Container Y App
+La route valida input, toma valores request-scoped, invoca la operación y convierte
+`Result` a HTTP. No contiene reglas de negocio, SQL ni transacciones.
+
+## 6. Container Y App
 
 ```ts
 // di-container.ts
-const projectReadModel = new ProjectReadModel(db);
+return { db, tx, eventBus, clock };
 
-return {
-  tx,
-  projectReadModel,
-  createProjectRepository: (db: Db) => new DrizzleProjectRepository(db),
-};
-```
-
-```ts
 // app.ts
 app.route('/projects', buildProjectsRoutes({
+  db: dependencies.db,
   tx: dependencies.tx,
-  projectReadModel: dependencies.projectReadModel,
-  createProjectRepository: dependencies.createProjectRepository,
+  eventBus: dependencies.eventBus,
   clock: dependencies.clock,
 }));
 ```
 
-## 9. Tests
+El composition root crea recursos globales una vez. La feature recibe un objeto local
+con las deps necesarias; commands y queries reciben subconjuntos explícitos.
 
-- Utils: entity/policy unit tests.
-- Use cases: command/query tests con repos fake.
-- Repository: repository/read model contra DB real.
-- HTTP: `app.request()` con container de test.
+## 7. Tests
+
+- Los tests unitarios cubren solo lógica pura y quedan junto a su operación.
+- Los tests HTTP y DB viven en `features/projects/__tests__/`.
+- Usar `app.request()` con el composition root real y Postgres de Docker Compose.
+- Preload de env de test, ejecutar migraciones reales y preparar seed antes de tests.
+- No mockear database ni Supabase en integration.
 
 ## Checklist
 
-- [ ] Utils no importan frameworks.
-- [ ] Commands pasan por repositories/write-side.
-- [ ] Queries usan read models/Drizzle.
-- [ ] Controllers no tienen reglas.
+- [ ] La feature tiene una única `<feature>.routes.ts` fina.
+- [ ] Commands/queries exportan `<verb><Noun>Command|Query` y reciben deps explícitas.
+- [ ] Commands/queries usan Drizzle directo por default.
+- [ ] Mapping vive con la operación dueña.
+- [ ] Reads reutilizados por commands permanecen en `use-cases/queries/`.
+- [ ] Helpers/repositories se extraen solo con complejidad o reutilización concreta.
 - [ ] Transactions envuelven múltiples writes/outbox.

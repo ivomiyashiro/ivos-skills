@@ -12,8 +12,7 @@ import type { AppDependencies } from './di-container';
 
 /**
  * Construye la instancia de Hono con middlewares globales, probes, metrics,
- * docs y features montadas. Hono queda como adapter HTTP: la logica vive en
- * use-cases/repository/utils dentro de cada feature.
+ * docs and mounted features. Each feature route file is its only HTTP adapter.
  */
 export const buildApp = (dependencies: AppDependencies) => {
   const app = createApiRouter();
@@ -43,8 +42,7 @@ export const buildApp = (dependencies: AppDependencies) => {
   app.route(
     '/examples',
     buildExamplesRoutes({
-      createRepo: dependencies.createExampleRepository,
-      readModel: dependencies.exampleReadModel,
+      db: dependencies.db,
       tx: dependencies.tx,
       eventBus: dependencies.eventBus,
       clock: dependencies.clock,

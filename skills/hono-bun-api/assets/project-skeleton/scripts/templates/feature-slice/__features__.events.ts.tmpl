@@ -1,0 +1,13 @@
+import type { DomainEvent } from '@shared/events/event-bus';
+
+export const __feature__Created = (__feature__Id: string, occurredAt: Date): DomainEvent<'__feature__.created', { __feature__Id: string }> => ({
+  type: '__feature__.created',
+  payload: { __feature__Id },
+  occurredAt,
+});
+
+export const __feature__Updated = (__feature__Id: string, occurredAt: Date): DomainEvent<'__feature__.updated', { __feature__Id: string }> => ({
+  type: '__feature__.updated',
+  payload: { __feature__Id },
+  occurredAt,
+});

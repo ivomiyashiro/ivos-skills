@@ -1,0 +1,12 @@
+import { expect, test } from 'bun:test';
+import { to__Feature__Dto } from './create-__feature__.command';
+
+test('to__Feature__Dto maps a database row for the create operation', () => {
+  expect(to__Feature__Dto({
+    id: 'fbc67e68-6af2-44d3-8ec2-5f357bc5c3d4',
+    name: '__Feature__',
+    status: 'draft',
+    createdAt: new Date('2026-05-12T00:00:00Z'),
+    updatedAt: new Date('2026-05-12T00:00:00Z'),
+  })).toMatchObject({ name: '__Feature__', status: 'draft' });
+});

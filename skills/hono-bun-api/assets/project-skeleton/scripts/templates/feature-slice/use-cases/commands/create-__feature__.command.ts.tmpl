@@ -1,45 +1,43 @@
 import { success, type Result } from '@shared/result';
 import type { AppError } from '@shared/errors/app-error';
-import type { Logger } from '@shared/observability/logger';
 import type { EventBus } from '@shared/events/event-bus';
-import type { Db } from '@shared/db/client';
 import type { TransactionManager } from '@shared/db/transaction';
-import type { Clock } from '@/container';
-import type { __Feature__Repository } from '../../repository/__feature__.repository';
-import { __Feature__ } from '../../utils/__feature__.entity';
+import { __features__ } from '@shared/db/schema';
+import type { Clock } from '@/di-container';
 import type { __Feature__Dto } from '../../__features__.schemas';
+import { __feature__Created } from '../../__features__.events';
 
-export type Create__Feature__Command = {
+export type Create__Feature__Command = { name: string; actorId: string | null };
+export type Create__Feature__Deps = { tx: TransactionManager; eventBus: EventBus; clock: Clock };
+
+type __Feature__Row = {
+  id: string;
   name: string;
-  actorId: string | null;
+  status: __Feature__Dto['status'];
+  createdAt: Date;
+  updatedAt: Date;
 };
 
-export type Create__Feature__Deps = {
-  createRepo: (db: Db) => __Feature__Repository;
-  tx: TransactionManager;
-  eventBus: EventBus;
-  logger: Logger;
-  clock: Clock;
-};
+export const to__Feature__Dto = (row: __Feature__Row): __Feature__Dto => ({
+  id: row.id,
+  name: row.name,
+  status: row.status,
+  createdAt: row.createdAt.toISOString(),
+  updatedAt: row.updatedAt.toISOString(),
+});
 
 export const create__Feature__Command = async (
   deps: Create__Feature__Deps,
   command: Create__Feature__Command,
 ): Promise<Result<__Feature__Dto, AppError>> => {
-  const entity = __Feature__.create({ name: command.name, now: deps.clock.now() });
+  const now = deps.clock.now();
+  const [row] = await deps.tx.run((db) => db
+    .insert(__features__)
+    .values({ name: command.name, createdAt: now, updatedAt: now })
+    .returning());
 
-  await deps.tx.run(async (db) => {
-    await deps.createRepo(db).save(entity);
-  });
-
-  deps.eventBus.publishMany(entity.pullEvents());
-  deps.logger.info({ id: entity.id, actorId: command.actorId }, '__feature__ created');
-
-  return success({
-    id: entity.id,
-    name: entity.name,
-    status: entity.status,
-    createdAt: entity.createdAt.toISOString(),
-    updatedAt: entity.updatedAt.toISOString(),
-  });
+  if (!row) throw new Error('__Feature__ insert did not return a row');
+  const __feature__ = to__Feature__Dto(row);
+  deps.eventBus.publish(__feature__Created(__feature__.id, now));
+  return success(__feature__);
 };

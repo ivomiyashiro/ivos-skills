@@ -1,6 +1,0 @@
-import type { DomainEvent } from '@shared/events/event-bus';
-
-export type __Feature__Created = DomainEvent<'__Feature__Created', { id: string; name: string }>;
-export type __Feature__Updated = DomainEvent<'__Feature__Updated', { id: string }>;
-
-export type __Feature__Event = __Feature__Created | __Feature__Updated;

@@ -34,7 +34,7 @@ export const idempotencyKeys = pgTable('idempotency_keys', {
 ## Flow
 
 ```txt
-controller lee Idempotency-Key
+route lee Idempotency-Key
   -> command recibe idempotencyKey
   -> tx intenta reservar key
   -> si completed con mismo hash, devuelve resultado guardado

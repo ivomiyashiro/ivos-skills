@@ -1,0 +1,26 @@
+import { createRoute, z } from '@hono/zod-openapi';
+import { createApiRouter } from '@shared/hono/router';
+import { toHttpResponse } from '@shared/errors/to-http';
+import type { Db } from '@shared/db/client';
+import type { TransactionManager } from '@shared/db/transaction';
+import type { EventBus } from '@shared/events/event-bus';
+import type { Clock } from '@/di-container';
+import { Create__Feature__Input, __Feature__Dto, __Feature__IdParam, List__Features__Query, List__Features__Response, Update__Feature__Input } from './__features__.schemas';
+import { create__Feature__Command } from './use-cases/commands/create-__feature__.command';
+import { update__Feature__Command } from './use-cases/commands/update-__feature__.command';
+import { get__Feature__ByIdQuery } from './use-cases/queries/get-__feature__-by-id.query';
+import { list__Features__Query } from './use-cases/queries/list-__features__.query';
+
+export type __Features__RouteDeps = { db: Db; tx: TransactionManager; eventBus: EventBus; clock: Clock };
+
+export const build__Features__Routes = (deps: __Features__RouteDeps) => {
+  const routes = createApiRouter();
+  const ErrorBody = z.object({ kind: z.string() }).passthrough().openapi('ErrorBody');
+
+  routes.openapi(createRoute({ method: 'post', path: '/', tags: ['__features__'], request: { body: { content: { 'application/json': { schema: Create__Feature__Input } } } }, responses: { 201: { description: 'Created', content: { 'application/json': { schema: __Feature__Dto } } }, 422: { description: 'Validation error', content: { 'application/json': { schema: ErrorBody } } } } }), async (c) => toHttpResponse(c, await create__Feature__Command(deps, { ...c.req.valid('json'), actorId: c.get('auth')?.userId ?? null }), 201));
+  routes.openapi(createRoute({ method: 'put', path: '/{id}', tags: ['__features__'], request: { params: __Feature__IdParam, body: { content: { 'application/json': { schema: Update__Feature__Input } } } }, responses: { 200: { description: 'Updated', content: { 'application/json': { schema: __Feature__Dto } } }, 404: { description: 'Not found', content: { 'application/json': { schema: ErrorBody } } } } }), async (c) => toHttpResponse(c, await update__Feature__Command(deps, { id: c.req.valid('param').id, ...c.req.valid('json'), actorId: c.get('auth')?.userId ?? null }), 200));
+  routes.openapi(createRoute({ method: 'get', path: '/{id}', tags: ['__features__'], request: { params: __Feature__IdParam }, responses: { 200: { description: 'OK', content: { 'application/json': { schema: __Feature__Dto } } }, 404: { description: 'Not found', content: { 'application/json': { schema: ErrorBody } } } } }), async (c) => toHttpResponse(c, await get__Feature__ByIdQuery({ db: deps.db }, { id: c.req.valid('param').id, actorId: c.get('auth')?.userId ?? null }), 200));
+  routes.openapi(createRoute({ method: 'get', path: '/', tags: ['__features__'], request: { query: List__Features__Query }, responses: { 200: { description: 'OK', content: { 'application/json': { schema: List__Features__Response } } } } }), async (c) => toHttpResponse(c, await list__Features__Query({ db: deps.db }, { ...c.req.valid('query'), actorId: c.get('auth')?.userId ?? null }), 200));
+
+  return routes;
+};

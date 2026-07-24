@@ -35,7 +35,7 @@ export const createApiRouter = () =>
   });
 ```
 
-**Importante:** cada feature `routes/*.routes.ts` debe usar `createApiRouter()` para sus
+**Importante:** cada feature `<feature>.routes.ts` debe usar `createApiRouter()` para sus
 sub-routers. El `defaultHook` no se hereda al hacer `app.route('/prefix', sub)`;
 cada sub-app necesita su propia config.
 

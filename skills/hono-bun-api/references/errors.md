@@ -1,7 +1,7 @@
 # Errores Y Result
 
 El default del skeleton usa `Result<T, AppError>` para errores esperados de negocio
-en use cases. Esto hace explicito el contrato del caso de uso.
+en commands y queries. Esto hace explicito el contrato de la operación.
 
 ## Result
 
@@ -59,15 +59,15 @@ El middleware global loguea stack y responde 500 neutro.
 Si el proyecto ya usa exceptions tipadas para negocio, se puede aceptar:
 - una jerarquia chica de errores
 - middleware mapper central
-- nada de `try/catch` repetido en controllers
+- nada de `try/catch` repetido en routes
 
 No mezclar `Result` y exceptions de negocio dentro de la misma feature sin una razón
 clara. La consistencia vale mas que el estilo elegido.
 
 ## Anti-Patrones
 
-- `throw new HttpException(404)` desde use-cases/utils
+- `throw new HttpException(404)` desde commands/queries o helpers locales
 - errores HTTP dentro de entities
 - devolver stack traces al cliente
 - convertir todos los casos conocidos a `Unknown`
-- `catch` generico en cada controller
+- `catch` generico en cada route

@@ -8,7 +8,7 @@ decorators, reflection, `container.resolve()` ni una librería tipo `inversify`.
 ```txt
 Función pura -> no DI.
 Use case con IO -> deps explícitas.
-Deps repetidas en varios controllers -> factory por feature.
+Deps repetidas entre operaciones -> pasar solo el subconjunto necesario a cada operación.
 DI container library -> solo si hay lifetimes/grafo complejo real.
 ```
 
@@ -19,10 +19,11 @@ Pasar deps como objeto da:
 - tests sin mockear módulos globales
 - transacciones explícitas con `txDb`
 - `clock`, `logger`, `eventBus`, `auth` reemplazables
-- use cases ejecutables desde HTTP, jobs, scripts o tests
+- commands y queries ejecutables desde HTTP, jobs, scripts o tests
 - imports menos mágicos que `import { db } from '@shared/db'`
 
-El costo es verbosidad. Cuando empieza a molestar, usar una factory por feature.
+El costo es verbosidad, pero evita un service locator y hace visibles los límites de
+cada operación.
 
 ## Composition Root
 
@@ -35,15 +36,11 @@ export function createContainer() {
   const eventBus = createEventBus();
   const logger = baseLogger;
 
-  const exampleReadModel = new ExampleReadModel(db);
-
   return {
     db,
     tx,
     eventBus,
     logger,
-    exampleReadModel,
-    createExampleRepository: (db: Db) => new DrizzleExampleRepository(db),
   };
 }
 
@@ -57,8 +54,7 @@ esa feature necesita. Una feature no importa `AppDependencies` ni usa
 
 ```ts
 type ExampleFeatureDeps = {
-  createRepo: (db: Db) => ExampleRepository;
-  readModel: ExampleReadModel;
+  db: Db;
   tx: TransactionManager;
   eventBus: EventBus;
   clock: Clock;
@@ -67,8 +63,7 @@ type ExampleFeatureDeps = {
 app.route(
   '/examples',
   buildExamplesRoutes({
-    createRepo: dependencies.createExampleRepository,
-    readModel: dependencies.exampleReadModel,
+    db: dependencies.db,
     tx: dependencies.tx,
     eventBus: dependencies.eventBus,
     clock: dependencies.clock,
@@ -76,56 +71,41 @@ app.route(
 );
 ```
 
-## Deps Explícitas En Use Cases
+## Deps Explícitas En Operaciones
 
 ```ts
 export const createExampleCommand = async (
   deps: {
-    createRepo: (db: Db) => ExampleRepository;
     tx: TransactionManager;
     clock: Clock;
   },
   command: CreateExampleCommand,
 ) => {
   return deps.tx.run(async (db) => {
-    const repo = deps.createRepo(db);
-    // ...
+    await db.insert(examples).values({ name: command.name });
   });
 };
 ```
 
-El use case no recibe `container`, no importa Hono y no importa un singleton global
+La operación no recibe `container`, no importa Hono y no importa un singleton global
 de DB.
 
-## Factory Por Feature
+## Routes Y Operaciones
 
-Cuando varios controllers repiten deps, crear una factory liviana:
-
-```ts
-export type ExampleUseCasesDeps = {
-  createRepo: (db: Db) => ExampleRepository;
-  readModel: ExampleReadModel;
-  tx: TransactionManager;
-  eventBus: EventBus;
-  logger: Logger;
-  clock: Clock;
-};
-
-export const createExampleUseCases = (deps: ExampleUseCasesDeps) => ({
-  create: (command: CreateExampleCommand) => createExampleCommand(deps, command),
-  update: (command: UpdateExampleCommand) => updateExampleCommand(deps, command),
-  list: (query: ListExamplesQueryRequest) => listExamplesQuery({ readModel: deps.readModel }, query),
-});
-```
-
-El controller queda como adapter:
+La route es el único adapter HTTP. Recibe las deps de feature y pasa a cada
+operación solo las que usa:
 
 ```ts
-const buildUseCases = (deps: ExampleFeatureDeps, c: Context<AppEnv>) =>
-  createExampleUseCases({
-    ...deps,
-    logger: c.get('logger'),
-  });
+routes.openapi(route, async (c) =>
+  toHttpResponse(
+    c,
+    await createExampleCommand(
+      { tx: deps.tx, eventBus: deps.eventBus, clock: deps.clock },
+      { ...c.req.valid('json'), actorId: c.get('auth')!.userId },
+    ),
+    201,
+  ),
+);
 ```
 
 ## Alternativas Y Tradeoffs
@@ -133,8 +113,8 @@ const buildUseCases = (deps: ExampleFeatureDeps, c: Context<AppEnv>) =>
 | Opción | Usar cuando | Costo |
 |---|---|---|
 | Imports directos | scripts chicos o prototipos | tests y transacciones más frágiles |
-| Deps explícitas | default para use cases con IO | algo verboso |
-| Factory por feature | deps repetidas en controllers | una capa más |
+| Deps explícitas | default para commands/queries con IO | algo verboso |
+| Objeto de deps de feature | una route monta varias operaciones | la route elige subconjuntos explícitos |
 | Context object global | equipos chicos que aceptan acoplamiento | puede volverse service locator |
 | DI container | lifetimes complejos, plugins, muchas implementaciones | magia, setup y debugging extra |
 
@@ -152,15 +132,17 @@ transaccional específico.
 
 ## Testing
 
-Para unit tests de use cases, construir deps fake a mano. Para integration tests de
-Hono, crear dependencias de test en el composition root con DB de test y adapters fake.
+Para lógica pura, construir deps simples o llamar el helper directamente desde un
+test co-localizado. Para integration de Hono, crear el composition root contra
+Postgres real de Docker Compose, con preload, migraciones y seed; no usar mocks de
+database ni Supabase.
 
 ## Anti-Patrones
 
 - module-level singleton `export const db = buildDb(...)`
 - pasar `AppDependencies` o `Pick<AppDependencies, ...>` a una feature
-- pasar `container` completo a cada use case
-- importar Hono context en use cases/utils
+- pasar `container` completo a cada command/query
+- importar Hono context en commands/queries
 - usar `mock.module('@shared/db/client')` como default de testing
 - registrar dependencias con strings mágicos
-- construir repositories dentro de entidades/utils
+- crear helpers o repositories por defecto en vez de usar Drizzle directo

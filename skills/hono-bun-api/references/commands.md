@@ -22,32 +22,32 @@ export type CreateProjectCommand = {
 };
 
 export type CreateProjectDeps = {
-  createProjectRepository: (db: Db) => ProjectRepository;
   tx: TransactionManager;
   eventBus: EventBus;
   clock: Clock;
-  logger: Logger;
 };
 
 export const createProjectCommand = async (
   deps: CreateProjectDeps,
   command: CreateProjectCommand,
 ): Promise<Result<{ id: string }, AppError>> => {
-  return deps.tx.run(async (db) => {
-    const repo = deps.createProjectRepository(db);
-    const project = Project.create({
-      organizationId: command.organizationId,
-      name: command.name,
-      ownerId: command.ownerId,
-      now: deps.clock.now(),
-    });
+  const project = await deps.tx.run(async (db) => {
+    const [project] = await db
+      .insert(projects)
+      .values({
+        organizationId: command.organizationId,
+        name: command.name,
+        ownerId: command.ownerId,
+        createdAt: deps.clock.now(),
+      })
+      .returning({ id: projects.id });
 
-    await repo.save(project);
-    deps.eventBus.publishMany(project.pullEvents());
-
-    deps.logger.info({ projectId: project.id }, 'project created');
-    return success({ id: project.id });
+    if (!project) throw new Error('Project insert did not return a row');
+    return project;
   });
+
+  deps.eventBus.publish(projectCreated(project.id));
+  return success(project);
 };
 ```
 
@@ -57,9 +57,9 @@ Un command puede:
 
 - cargar estado necesario para la decisión
 - verificar authorization fina
-- aplicar policies de `utils/`
+- aplicar helpers locales puros cuando una regla lo requiere
 - abrir transacciones
-- llamar repositories/adapters
+- usar Drizzle y adapters explícitos
 - registrar outbox/eventos
 - devolver output mínimo
 
@@ -73,7 +73,7 @@ No debe:
 
 ## Validación
 
-Zod valida shape en el borde HTTP. El command/utils valida reglas de negocio:
+Zod valida shape en el borde HTTP. El command y sus helpers locales validan reglas de negocio:
 
 - límites del plan
 - permisos del actor
@@ -90,13 +90,12 @@ Usar `TransactionManager` cuando:
 - se mutan múltiples agregados
 - hay que garantizar rollback atómico
 
-Para writes triviales de una sola tabla, el repository puede usar `db` directo.
+Para writes triviales de una sola tabla, el command recibe `db` y usa Drizzle directo.
 
 ## Eventos
 
 Para side effects no críticos:
 
-- utils/entity acumula eventos si aplica
 - command persiste cambios
 - command guarda outbox o publica post-commit
 - worker procesa email/webhook/notificación
@@ -105,5 +104,6 @@ No publicar eventos externos antes de confirmar la transacción.
 
 ## Testing
 
-Unit testear commands con repositorios fake. Integration testear repositories Drizzle
-contra DB real o pglite/testcontainers.
+Testear unitariamente solo helpers puros co-localizados. Validar commands con IO en
+`features/<feature>/__tests__/` mediante `app.request()` contra Postgres real de
+Docker Compose, con preload, migraciones y seed; no mockear DB ni Supabase.

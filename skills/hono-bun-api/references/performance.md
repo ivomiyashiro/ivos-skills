@@ -15,7 +15,7 @@ Antes de cerrar un endpoint:
 - Índice compatible con filtros + orden.
 - Sin N+1 obvio.
 - Response payload chico y sin blobs innecesarios.
-- Query compleja testeada contra DB real o pglite/testcontainers.
+- Query compleja testeada contra Postgres real de Docker Compose.
 
 ## Índice Junto Al Endpoint
 
@@ -49,7 +49,7 @@ cerrar:
 
 - join/proyección directa
 - batch query con `inArray`
-- read model dedicado
+- query con proyección directa; helper local solo si se reutiliza
 - cache per-request si el mismo dato se repite dentro del request
 
 ## Cache
@@ -85,7 +85,7 @@ El skeleton incluye `bun run check:boundaries`. Debe fallar si:
 
 - `shared/*` importa `features/*`
 - una feature importa internals de otra feature
-- una feature usa `@features/other/repository`, `@features/other/utils`, etc.
+- una feature importa cualquier subpath interno de otra feature
 
 Permitido:
 
@@ -96,5 +96,5 @@ import { buildBillingRoutes } from '@features/billing';
 No permitido:
 
 ```ts
-import { BillingRepository } from '@features/billing/repository/billing.repository';
+import { getBillingSummaryQuery } from '@features/billing/use-cases/queries/get-billing-summary.query';
 ```

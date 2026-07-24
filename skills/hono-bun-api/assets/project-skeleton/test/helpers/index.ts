@@ -1,16 +1,14 @@
 import pino from 'pino';
 import type { EventBus, DomainEvent } from '@shared/events/event-bus';
 import { createTransactionManager } from '@shared/db/transaction';
-import { DrizzleExampleRepository } from '@features/examples/repository/drizzle-example.repository';
-import { ExampleReadModel } from '@features/examples/repository/example-read-model';
 import type { Clock } from '@/di-container';
 import type { AppDependencies } from '@/di-container';
 import { buildTestDb } from './db';
 
-/** Logger silencioso para tests. No imprime nada, no rompe el output. */
+/** Silent logger for tests. */
 export const silentLogger = pino({ level: 'silent' });
 
-/** EventBus no-op para tests que no inspeccionan eventos. */
+/** No-op event bus for tests that do not inspect events. */
 export const noopBus: EventBus = {
   publish: () => {},
   publishMany: () => {},
@@ -18,7 +16,7 @@ export const noopBus: EventBus = {
   off: () => {},
 };
 
-/** Recolector de eventos para verificar publish calls en tests. */
+/** Event collector for publish assertions. */
 export const createRecordingBus = () => {
   const events: DomainEvent[] = [];
   return {
@@ -32,7 +30,7 @@ export const createRecordingBus = () => {
   };
 };
 
-/** Clock fijo para tests determinísticos. */
+/** Fixed clock for deterministic tests. */
 export const fixedClock = (date: Date | string = '2026-05-12T00:00:00Z'): Clock => ({
   now: () => (typeof date === 'string' ? new Date(date) : date),
 });
@@ -47,8 +45,5 @@ export const createTestContainer = async (): Promise<AppDependencies> => {
     tx: createTransactionManager(db),
     eventBus: noopBus,
     clock: fixedClock(),
-    exampleRepo: new DrizzleExampleRepository(db),
-    createExampleRepository: (txDb: typeof db) => new DrizzleExampleRepository(txDb),
-    exampleReadModel: new ExampleReadModel(db),
   };
 };

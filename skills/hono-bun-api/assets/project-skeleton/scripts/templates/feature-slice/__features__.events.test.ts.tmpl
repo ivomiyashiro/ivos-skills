@@ -1,0 +1,11 @@
+import { expect, test } from 'bun:test';
+import { __feature__Created } from './__features__.events';
+
+test('__feature__Created identifies the created record', () => {
+  const occurredAt = new Date('2026-05-12T00:00:00Z');
+
+  expect(__feature__Created('fbc67e68-6af2-44d3-8ec2-5f357bc5c3d4', occurredAt)).toMatchObject({
+    type: '__feature__.created',
+    payload: { __feature__Id: 'fbc67e68-6af2-44d3-8ec2-5f357bc5c3d4' },
+  });
+});

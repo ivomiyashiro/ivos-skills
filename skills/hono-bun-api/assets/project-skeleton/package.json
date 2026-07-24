@@ -7,7 +7,10 @@
     "dev": "bun --watch run src/server.ts",
     "start": "bun run src/server.ts",
     "build": "bun build src/server.ts --target=bun --outdir=dist",
-    "test": "bun test",
+    "test": "bun test scripts/scaffold-feature.test.ts src/features/examples/use-cases/commands src/features/examples/use-cases/queries src/features/examples/examples.events.test.ts",
+    "test:integration": "bun test src/features/examples/__tests__/examples.integration.ts",
+    "test:db:up": "docker compose -f docker-compose.test.yml up -d --wait",
+    "test:db:down": "docker compose -f docker-compose.test.yml down -v",
     "test:watch": "bun test --watch",
     "typecheck": "tsc --noEmit",
     "check:boundaries": "bun run scripts/check-boundaries.ts",
@@ -34,7 +37,6 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "@electric-sql/pglite": "^0.2.0",
     "drizzle-kit": "^0.28.0",
     "pino-pretty": "^11.0.0",
     "typescript": "^5.6.0"

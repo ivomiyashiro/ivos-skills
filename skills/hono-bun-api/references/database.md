@@ -271,7 +271,7 @@ contra una tabla `schema_migrations`.
 El skill default es Drizzle. Para swap a Kysely o Bun.sql:
 1. Editar `src/shared/db/client.ts` con el cliente nuevo.
 2. Cambiar `Db` type.
-3. Adaptar repositories/read models de cada feature.
+3. Adaptar commands, queries y helpers locales de cada feature.
 4. Las queries del lado read se reescriben similar.
 
 ## Pool sizing

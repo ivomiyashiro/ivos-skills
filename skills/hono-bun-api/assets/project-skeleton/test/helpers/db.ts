@@ -1,24 +1,12 @@
-import { PGlite } from '@electric-sql/pglite';
-import { drizzle } from 'drizzle-orm/pglite';
 import { sql } from 'drizzle-orm';
-import * as schema from '@shared/db/schema';
-import type { Db } from '@shared/db/client';
+import { buildDb } from '@shared/db/client';
+import { env } from '@shared/config/env';
 
 /**
- * buildTestDb — arranca pglite (Postgres compilado a WASM, in-process), aplica
- * el schema de la feature examples y retorna { db, close }.
- *
- * El cast `as unknown as Db` es seguro mientras los handlers usen solo APIs
- * compatibles entre `drizzle-orm/postgres-js` y `drizzle-orm/pglite`
- * (select/insert/update/delete + onConflictDoUpdate). Ambos derivan de
- * `drizzle-orm/pg-core`.
- *
- * Para tests que requieran features avanzadas de Postgres no cubiertas por
- * pglite (algunas extensiones, RLS), usar testcontainers en su lugar.
+ * Connect to the Docker Compose Postgres instance used by integration tests.
  */
 export const buildTestDb = async () => {
-  const client = new PGlite();
-  const db = drizzle(client, { schema });
+  const { db, close } = buildDb(env.DATABASE_URL);
 
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS examples (
@@ -31,8 +19,7 @@ export const buildTestDb = async () => {
     );
   `);
 
-  return {
-    db: db as unknown as Db,
-    close: () => client.close(),
-  };
+  await db.execute(sql`TRUNCATE TABLE examples`);
+
+  return { db, close };
 };
