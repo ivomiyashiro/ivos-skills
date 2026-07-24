@@ -26,7 +26,7 @@ El costo es verbosidad. Cuando empieza a molestar, usar una factory por feature.
 
 ## Composition Root
 
-Crear recursos de app una vez en `container.ts`:
+Crear recursos de app una vez en `di-container.ts`:
 
 ```ts
 export function createContainer() {
@@ -47,11 +47,34 @@ export function createContainer() {
   };
 }
 
-export type AppContainer = ReturnType<typeof createContainer>;
+export type AppDependencies = ReturnType<typeof createContainer>;
 ```
 
-`buildApp(container)` registra middlewares y monta features. Los controllers reciben
-el container vía closure.
+`buildApp(dependencies)` registra middlewares y es el único borde HTTP que conoce
+`AppDependencies`. Al montar una feature, crea un objeto literal con las deps que
+esa feature necesita. Una feature no importa `AppDependencies` ni usa
+`Pick<AppDependencies, ...>`.
+
+```ts
+type ExampleFeatureDeps = {
+  createRepo: (db: Db) => ExampleRepository;
+  readModel: ExampleReadModel;
+  tx: TransactionManager;
+  eventBus: EventBus;
+  clock: Clock;
+};
+
+app.route(
+  '/examples',
+  buildExamplesRoutes({
+    createRepo: dependencies.createExampleRepository,
+    readModel: dependencies.exampleReadModel,
+    tx: dependencies.tx,
+    eventBus: dependencies.eventBus,
+    clock: dependencies.clock,
+  }),
+);
+```
 
 ## Deps Explícitas En Use Cases
 
@@ -98,14 +121,10 @@ export const createExampleUseCases = (deps: ExampleUseCasesDeps) => ({
 El controller queda como adapter:
 
 ```ts
-const buildUseCases = (container: AppContainer, c: Context<AppEnv>) =>
+const buildUseCases = (deps: ExampleFeatureDeps, c: Context<AppEnv>) =>
   createExampleUseCases({
-    createRepo: container.createExampleRepository,
-    readModel: container.exampleReadModel,
-    tx: container.tx,
-    eventBus: container.eventBus,
+    ...deps,
     logger: c.get('logger'),
-    clock: container.clock,
   });
 ```
 
@@ -134,11 +153,12 @@ transaccional específico.
 ## Testing
 
 Para unit tests de use cases, construir deps fake a mano. Para integration tests de
-Hono, crear un container de test con DB de test y adapters fake.
+Hono, crear dependencias de test en el composition root con DB de test y adapters fake.
 
 ## Anti-Patrones
 
 - module-level singleton `export const db = buildDb(...)`
+- pasar `AppDependencies` o `Pick<AppDependencies, ...>` a una feature
 - pasar `container` completo a cada use case
 - importar Hono context en use cases/utils
 - usar `mock.module('@shared/db/client')` como default de testing

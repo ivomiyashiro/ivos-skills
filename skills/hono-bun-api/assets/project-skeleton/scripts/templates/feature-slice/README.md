@@ -8,5 +8,5 @@ El output usa:
 - Repository: write repository, mapper, read model
 - Utils: entity/policies/events/helpers locales
 
-Despues de scaffoldear, registrar tabla Drizzle, repo/read model en `container.ts`
+Despues de scaffoldear, registrar tabla Drizzle, repo/read model en `di-container.ts`
 y montar rutas en `app.ts`.

@@ -3,8 +3,8 @@ import type { EventBus, DomainEvent } from '@shared/events/event-bus';
 import { createTransactionManager } from '@shared/db/transaction';
 import { DrizzleExampleRepository } from '@features/examples/repository/drizzle-example.repository';
 import { ExampleReadModel } from '@features/examples/repository/example-read-model';
-import type { Clock } from '@/container';
-import type { AppContainer } from '@/container';
+import type { Clock } from '@/di-container';
+import type { AppDependencies } from '@/di-container';
 import { buildTestDb } from './db';
 
 /** Logger silencioso para tests. No imprime nada, no rompe el output. */
@@ -37,7 +37,7 @@ export const fixedClock = (date: Date | string = '2026-05-12T00:00:00Z'): Clock 
   now: () => (typeof date === 'string' ? new Date(date) : date),
 });
 
-export const createTestContainer = async (): Promise<AppContainer> => {
+export const createTestContainer = async (): Promise<AppDependencies> => {
   const { db, close } = await buildTestDb();
 
   return {

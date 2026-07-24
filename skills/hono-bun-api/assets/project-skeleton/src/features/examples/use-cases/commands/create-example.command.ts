@@ -2,7 +2,7 @@ import { success, type Result } from '@shared/result';
 import type { AppError } from '@shared/errors/app-error';
 import type { Logger } from '@shared/observability/logger';
 import type { EventBus } from '@shared/events/event-bus';
-import type { Clock } from '@/container';
+import type { Clock } from '@/di-container';
 import type { Db } from '@shared/db/client';
 import type { TransactionManager } from '@shared/db/transaction';
 import type { ExampleRepository } from '../../repository/example.repository';

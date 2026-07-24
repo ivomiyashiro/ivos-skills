@@ -2,7 +2,7 @@ import type { Db } from '@shared/db/client';
 import type { TransactionManager } from '@shared/db/transaction';
 import type { EventBus } from '@shared/events/event-bus';
 import type { Logger } from '@shared/observability/logger';
-import type { Clock } from '@/container';
+import type { Clock } from '@/di-container';
 import type { ExampleRepository } from '../repository/example.repository';
 import type { ExampleReadModel } from '../repository/example-read-model';
 import {

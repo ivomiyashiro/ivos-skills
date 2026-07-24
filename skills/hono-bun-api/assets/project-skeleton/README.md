@@ -44,7 +44,7 @@ use-cases/utils.
 src/
   server.ts
   app.ts
-  container.ts
+  di-container.ts
   shared/
     db/
     errors/
@@ -74,13 +74,13 @@ bun run scaffold project
 Luego:
 
 1. Definir tabla en `src/shared/db/schema.ts`.
-2. Registrar repository/read model en `src/container.ts`.
+2. Registrar repository/read model en `src/di-container.ts`.
 3. Montar rutas en `src/app.ts`.
 
 ```ts
 import { buildProjectsRoutes } from '@features/projects';
 
-app.route('/projects', buildProjectsRoutes(container));
+app.route('/projects', buildProjectsRoutes({ projectReadModel: dependencies.projectReadModel }));
 ```
 
 ## Convenciones

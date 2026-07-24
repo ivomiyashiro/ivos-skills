@@ -57,8 +57,8 @@ import { createTestContainer } from '@test/helpers';
 
 describe('POST /examples', () => {
   test('201 con input válido', async () => {
-    const container = await createTestContainer();
-    const app = buildApp(container);
+    const dependencies = await createTestContainer();
+    const app = buildApp(dependencies);
 
     const res = await app.request('/examples', {
       method: 'POST',

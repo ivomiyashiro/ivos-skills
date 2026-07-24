@@ -36,4 +36,4 @@ export const createContainer = () => {
   };
 };
 
-export type AppContainer = ReturnType<typeof createContainer>;
+export type AppDependencies = ReturnType<typeof createContainer>;

@@ -1,10 +1,10 @@
 import { env } from '@shared/config/env';
 import { buildApp } from './app';
-import { createContainer } from './container';
+import { createContainer } from './di-container';
 
-const container = createContainer();
-const app = buildApp(container);
-const logger = container.logger;
+const dependencies = createContainer();
+const app = buildApp(dependencies);
+const logger = dependencies.logger;
 
 let shuttingDown = false;
 
@@ -30,7 +30,7 @@ const shutdown = async (signal: string) => {
   server.stop(false);
 
   try {
-    await container.closeDb(5);
+    await dependencies.closeDb(5);
     logger.info('db pool closed');
   } catch (err) {
     logger.error({ err }, 'error closing db pool');

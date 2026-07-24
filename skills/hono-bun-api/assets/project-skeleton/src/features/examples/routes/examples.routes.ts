@@ -1,6 +1,5 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import { createApiRouter } from '@shared/hono/router';
-import type { AppContainer } from '@/container';
 import {
   CreateExampleInput,
   UpdateExampleInput,
@@ -11,12 +10,13 @@ import {
 } from '../examples.schemas';
 import {
   createExampleController,
+  type ExampleControllerDeps,
   getExampleController,
   listExamplesController,
   updateExampleController,
 } from '../controller/examples.controller';
 
-export const buildExamplesRoutes = (container: AppContainer) => {
+export const buildExamplesRoutes = (deps: ExampleControllerDeps) => {
   const r = createApiRouter();
   const ErrorBody = z.object({ kind: z.string() }).passthrough().openapi('ErrorBody');
 
@@ -34,7 +34,7 @@ export const buildExamplesRoutes = (container: AppContainer) => {
         422: { description: 'Validation error', content: { 'application/json': { schema: ErrorBody } } },
       },
     }),
-    createExampleController(container) as any,
+    createExampleController(deps) as any,
   );
 
   r.openapi(
@@ -54,7 +54,7 @@ export const buildExamplesRoutes = (container: AppContainer) => {
         422: { description: 'Validation error', content: { 'application/json': { schema: ErrorBody } } },
       },
     }),
-    updateExampleController(container) as any,
+    updateExampleController(deps) as any,
   );
 
   r.openapi(
@@ -69,7 +69,7 @@ export const buildExamplesRoutes = (container: AppContainer) => {
         404: { description: 'Not found', content: { 'application/json': { schema: ErrorBody } } },
       },
     }),
-    getExampleController(container) as any,
+    getExampleController(deps) as any,
   );
 
   r.openapi(
@@ -84,7 +84,7 @@ export const buildExamplesRoutes = (container: AppContainer) => {
         422: { description: 'Validation error', content: { 'application/json': { schema: ErrorBody } } },
       },
     }),
-    listExamplesController(container) as any,
+    listExamplesController(deps) as any,
   );
 
   return r;

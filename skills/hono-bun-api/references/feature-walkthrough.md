@@ -154,14 +154,21 @@ listados complejos.
 
 ```ts
 // features/projects/controller/projects.controller.ts
+type ProjectFeatureDeps = {
+  createProjectRepository: (db: Db) => ProjectRepository;
+  projectReadModel: ProjectReadModel;
+  tx: TransactionManager;
+  clock: Clock;
+};
+
 export const createProjectController =
-  (container: AppContainer) =>
+  (deps: ProjectFeatureDeps) =>
   async (c: Context<AppEnv>) => {
     const result = await createProjectCommand(
       {
-        createProjectRepo: container.createProjectRepository,
-        tx: container.tx,
-        clock: container.clock,
+        createProjectRepo: deps.createProjectRepository,
+        tx: deps.tx,
+        clock: deps.clock,
         logger: c.get('logger'),
       },
       { ...c.req.valid('json'), ownerId: c.get('auth')!.userId },
@@ -177,11 +184,11 @@ Controller adapta HTTP. No contiene reglas de negocio.
 
 ```ts
 // features/projects/routes/projects.routes.ts
-export const buildProjectsRoutes = (container: AppContainer) => {
+export const buildProjectsRoutes = (deps: ProjectFeatureDeps) => {
   const r = createApiRouter();
 
-  r.openapi(createRoute({ method: 'post', path: '/', ... }), createProjectController(container));
-  r.openapi(createRoute({ method: 'get', path: '/', ... }), listProjectsController(container));
+  r.openapi(createRoute({ method: 'post', path: '/', ... }), createProjectController(deps));
+  r.openapi(createRoute({ method: 'get', path: '/', ... }), listProjectsController(deps));
 
   return r;
 };
@@ -190,7 +197,7 @@ export const buildProjectsRoutes = (container: AppContainer) => {
 ## 8. Container Y App
 
 ```ts
-// container.ts
+// di-container.ts
 const projectReadModel = new ProjectReadModel(db);
 
 return {
@@ -202,7 +209,12 @@ return {
 
 ```ts
 // app.ts
-app.route('/projects', buildProjectsRoutes(container));
+app.route('/projects', buildProjectsRoutes({
+  tx: dependencies.tx,
+  projectReadModel: dependencies.projectReadModel,
+  createProjectRepository: dependencies.createProjectRepository,
+  clock: dependencies.clock,
+}));
 ```
 
 ## 9. Tests

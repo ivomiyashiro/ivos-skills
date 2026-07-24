@@ -10,9 +10,17 @@
       "name": "ivos-skills",
       "description": "A collection of skills for development tools, frameworks, and libraries covering Flutter, React, Hono/Bun APIs, Supabase, and Postgres.",
       "source": "./",
-      "version": "1.1.15",
+      "version": "1.1.16",
       "category": "development-tools",
-      "tags": ["skills", "flutter", "react", "supabase", "hono", "bun", "postgres"]
+      "tags": [
+        "skills",
+        "flutter",
+        "react",
+        "supabase",
+        "hono",
+        "bun",
+        "postgres"
+      ]
     }
   ]
 }

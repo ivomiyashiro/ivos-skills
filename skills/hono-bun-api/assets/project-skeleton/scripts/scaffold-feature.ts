@@ -164,9 +164,11 @@ const main = async () => {
 
   console.log('\nNext steps:');
   console.log('  1. Definir tabla en src/shared/db/schema.ts y generar migracion.');
-  console.log(`  2. Registrar repo/read model en src/container.ts.`);
+  console.log(`  2. Registrar repo/read model en src/di-container.ts.`);
   console.log(`  3. Mountear en src/app.ts:`);
-  console.log(`       app.route('/${placeholders.features}', build${placeholders.Features}Routes(container));`);
+  console.log(
+    `       app.route('/${placeholders.features}', build${placeholders.Features}Routes({ /* feature deps */ }));`,
+  );
   console.log('  4. Reemplazar TODOs de repository con queries Drizzle reales.');
 };
 

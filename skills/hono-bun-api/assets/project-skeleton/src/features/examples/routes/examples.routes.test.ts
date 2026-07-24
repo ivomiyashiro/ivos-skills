@@ -4,8 +4,8 @@ import { createTestContainer } from '@test/helpers';
 
 describe('examples routes', () => {
   test('GET /examples returns a list', async () => {
-    const container = await createTestContainer();
-    const app = buildApp(container);
+    const dependencies = await createTestContainer();
+    const app = buildApp(dependencies);
 
     const res = await app.request('/examples');
 

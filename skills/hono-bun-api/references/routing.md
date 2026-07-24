@@ -1,6 +1,6 @@
 # Routing
 
-Cada feature exporta `build<Features>Routes(container)` desde su `index.ts`. El
+Cada feature exporta `build<Features>Routes(featureDeps)` desde su `index.ts`. El
 archivo `routes/<features>.routes.ts` arma la sub-app Hono/OpenAPI y conecta cada
 ruta con su controller.
 
@@ -8,7 +8,12 @@ ruta con su controller.
 
 ```ts
 // features/projects/routes/projects.routes.ts
-export const buildProjectsRoutes = (container: AppContainer) => {
+export type ProjectsRouteDeps = {
+  projectReadModel: ProjectReadModel;
+  tx: TransactionManager;
+};
+
+export const buildProjectsRoutes = (deps: ProjectsRouteDeps) => {
   const r = createApiRouter();
 
   r.openapi(
@@ -23,7 +28,7 @@ export const buildProjectsRoutes = (container: AppContainer) => {
         201: { description: 'Created', content: { 'application/json': { schema: ProjectDto } } },
       },
     }),
-    createProjectController(container),
+    createProjectController(deps),
   );
 
   return r;
@@ -35,8 +40,14 @@ export const buildProjectsRoutes = (container: AppContainer) => {
 ```ts
 import { buildProjectsRoutes } from '@features/projects';
 
-app.route('/projects', buildProjectsRoutes(container));
-app.route('/organizations', buildOrganizationsRoutes(container));
+app.route(
+  '/projects',
+  buildProjectsRoutes({
+    projectReadModel: dependencies.projectReadModel,
+    tx: dependencies.tx,
+  }),
+);
+app.route('/organizations', buildOrganizationsRoutes({ organizationReadModel: dependencies.organizationReadModel }));
 ```
 
 Registrar rutas antes de `mountDocs(app)` para que OpenAPI incluya todos los
@@ -48,6 +59,7 @@ endpoints.
 - Controllers adaptan request/response.
 - Use cases no importan Hono.
 - No poner SQL ni reglas de negocio en routes.
+- Routes y controllers reciben un tipo local de deps; no importan el root `AppDependencies`.
 - Usar `requireAuth`/middleware si aplica a grupos enteros de rutas.
 
 ## Sub-recursos

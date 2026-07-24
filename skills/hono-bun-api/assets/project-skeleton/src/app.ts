@@ -8,18 +8,18 @@ import { createSupabaseVerify } from '@shared/auth/supabase';
 import { metricsHandler } from '@shared/observability/metrics';
 import { mountDocs } from '@shared/openapi/docs';
 import { buildExamplesRoutes } from '@features/examples';
-import type { AppContainer } from './container';
+import type { AppDependencies } from './di-container';
 
 /**
  * Construye la instancia de Hono con middlewares globales, probes, metrics,
  * docs y features montadas. Hono queda como adapter HTTP: la logica vive en
  * use-cases/repository/utils dentro de cada feature.
  */
-export const buildApp = (container: AppContainer) => {
+export const buildApp = (dependencies: AppDependencies) => {
   const app = createApiRouter();
 
   app.use('*', async (c, next) => {
-    c.set('db', container.db);
+    c.set('db', dependencies.db);
     await next();
   });
 
@@ -40,7 +40,16 @@ export const buildApp = (container: AppContainer) => {
   app.get('/healthz', (c) => c.json({ status: 'ok' }));
   app.get('/metrics', metricsHandler);
 
-  app.route('/examples', buildExamplesRoutes(container));
+  app.route(
+    '/examples',
+    buildExamplesRoutes({
+      createRepo: dependencies.createExampleRepository,
+      readModel: dependencies.exampleReadModel,
+      tx: dependencies.tx,
+      eventBus: dependencies.eventBus,
+      clock: dependencies.clock,
+    }),
+  );
 
   mountDocs(app);
 

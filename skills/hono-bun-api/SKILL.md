@@ -63,7 +63,7 @@ lecturas se optimizan sin cargar modelos de escritura cuando no aportan valor.
 src/
   app.ts
   server.ts
-  container.ts
+  di-container.ts
 
   shared/
     auth/
@@ -361,8 +361,37 @@ export function createContainer() {
 }
 ```
 
-Los use cases reciben solo las deps que usan, no el container entero. Si varios
-controllers repiten las mismas deps, crear una factory local:
+El composition root solo existe en el borde de la aplicación. `buildApp` recibe
+las dependencias globales y pasa a cada feature un objeto literal con los valores
+que usa. Una feature no importa el tipo del root ni usa `Pick<AppDependencies, ...>`:
+
+```ts
+type ExampleFeatureDeps = {
+  readModel: ExampleReadModel;
+  tx: TransactionManager;
+  eventBus: EventBus;
+};
+
+export const buildExampleRoutes = (deps: ExampleFeatureDeps) => {
+  const controller = createExampleController(deps);
+  // register routes with controller
+};
+
+export const buildApp = (dependencies: AppDependencies) => {
+  app.route(
+    "/examples",
+    buildExampleRoutes({
+      readModel: dependencies.exampleReadModel,
+      tx: dependencies.tx,
+      eventBus: dependencies.eventBus,
+    }),
+  );
+};
+```
+
+Controllers reciben el mismo tipo local y agregan deps request-scoped como
+`logger` o `auth`. Los use cases reciben solo las deps de la operación. Si varios
+controllers repiten deps, crear una factory local:
 
 ```ts
 export const createExampleUseCases = (deps: ExampleUseCasesDeps) => ({
@@ -372,8 +401,7 @@ export const createExampleUseCases = (deps: ExampleUseCasesDeps) => ({
 });
 ```
 
-Controllers reciben el container por closure, agregan deps request-scoped como
-`logger/auth`, crean la factory y llaman métodos del caso de uso. Ver `references/di.md`.
+Ver `references/di.md`.
 
 ---
 
@@ -408,6 +436,7 @@ No testear solo endpoints. Las reglas valiosas viven en use cases y utils.
 
 - [ ] Input HTTP validado con Zod.
 - [ ] Controllers sin reglas de negocio ni SQL.
+- [ ] Ninguna feature importa el tipo ni recibe el objeto del composition root.
 - [ ] Use cases no importan Hono.
 - [ ] Utils no importan Hono, Drizzle, Supabase ni Bun.
 - [ ] Constants/types/schemas viven en la feature salvo que sean globales reales.
